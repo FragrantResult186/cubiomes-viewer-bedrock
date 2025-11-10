@@ -1090,12 +1090,11 @@ struct SpawnStronghold : public Scheduled
         if (world->isdel) return;
 
         StrongholdIter sh;
-        initFirstStronghold(&sh, wi.mc, wi.seed);
 
         // note: pointer to atomic pointer
         QAtomicPointer<PosElement> *shpp = &world->strongholds;
 
-        while (nextStronghold(&sh, &g) > 0)
+        while (nextVillageStronghold(&sh, &g) > 0)
         {
             if (world->isdel)
                 return;

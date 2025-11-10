@@ -919,27 +919,6 @@ static bool intersectRectLine(double rx1, double rz1, double rx2, double rz2, do
     return false;
 }
 
-static bool isInnerRingOk(int mc, uint64_t seed, int x1, int z1, int x2, int z2, int r1, int r2)
-{
-    StrongholdIter sh;
-    Pos p = initFirstStronghold(&sh, mc, seed);
-
-    if (p.x >= x1 && p.x <= x2 && p.z >= z1 && p.z <= z2)
-        return true;
-    // Do a ray cast analysis, checking if any of the generation angles intersect the area.
-    double c, s;
-    c = cos(sh.angle + M_PI*2/3);
-    s = sin(sh.angle + M_PI*2/3);
-    if (intersectRectLine(x1, z1, x2, z2, c*r1, s*r1, c*r2, s*r2))
-        return true;
-    c = cos(sh.angle + M_PI*4/3);
-    s = sin(sh.angle + M_PI*4/3);
-    if (intersectRectLine(x1, z1, x2, z2, c*r1, s*r1, c*r2, s*r2))
-        return true;
-
-    return false;
-}
-
 static int f_confine(void *data, int x, int z, double p)
 {
     (void) x; (void) z;
@@ -1331,7 +1310,7 @@ L_qm_any:
                     continue;
                 }
                 if ((env->searchpass == PASS_FULL_64) ||
-                    (env->searchpass == PASS_FULL_48 && !finfo.dep64))
+                    (env->searchpass == PASS_FULL_32 && !finfo.dep64))
                 {
                     if (*env->stop) return COND_FAILED;
 
@@ -1406,7 +1385,7 @@ L_qm_any:
             {
                 if (env->searchpass == PASS_FULL_64)
                     return COND_FAILED;
-                if (env->searchpass == PASS_FULL_48 && !finfo.dep64)
+                if (env->searchpass == PASS_FULL_32 && !finfo.dep64)
                     return COND_FAILED;
                 return COND_MAYBE_POS_VALID;
             }
@@ -1425,7 +1404,7 @@ L_qm_any:
 
             if (env->searchpass == PASS_FULL_64)
                 return COND_OK;
-            if (env->searchpass == PASS_FULL_48 && !finfo.dep64)
+            if (env->searchpass == PASS_FULL_32 && !finfo.dep64)
                 return COND_OK;
             // some non-exhaustive structure clusters do not
             // have known center positions with 48-bit seeds
@@ -1546,29 +1525,6 @@ L_qm_any:
         return COND_OK;
 
 
-    case F_FIRST_STRONGHOLD:
-        {
-            StrongholdIter sh;
-            *cent = pc = initFirstStronghold(&sh, env->mc, env->seed);
-            if (imax) *imax = 1;
-        }
-        if (cond->rmax > 0)
-        {
-            int dx = pc.x - at.x;
-            int dz = pc.z - at.z;
-            int64_t rsq = dx*(int64_t)dx + dz*(int64_t)dz;
-            if (rsq > rmax)
-                return COND_FAILED;
-        }
-        else
-        {
-            if (pc.x < x1 || pc.x > x2 || pc.z < z1 || pc.z > z2)
-                return COND_FAILED;
-        }
-        if (cond->skipref && pc.x == at.x && pc.z == at.z)
-            return COND_FAILED;
-        return COND_OK;
-
 
     case F_STRONGHOLD:
 
@@ -1616,32 +1572,9 @@ L_qm_any:
         // MC_1_9+ formula:
         // r = 1408 + 3072*n + 1280*[0,1] (+/-112)
 
-        if (env->mc < MC_1_9)
-        {
-            if (rmax < 640*640 || rmin > 1152*1152)
-                return cond->count == 0 ? COND_OK : COND_FAILED;
-            r = 0;
-            rmin = 640;
-            rmax = 1152;
-        }
-        else
-        {   // check if the area is entirely outside the radii ranges in which strongholds can generate
-            if (rmax < 1408*1408)
-                return cond->count == 0 ? COND_OK : COND_FAILED;
-            rmin = sqrt(rmin);
-            rmax = sqrt(rmax);
-            r = (rmax - 1408) / 3072;       // maximum relevant ring number
-            if (rmax - rmin < 3072-1280)    // area does not span more than one ring
-            {
-                if (rmin > 1408+1280+3072*r)// area is between rings
-                    return cond->count == 0 ? COND_OK : COND_FAILED;
-            }
-            rmin = 1408;
-            rmax = 1408+1280;
-        }
-        // if we are only looking at the inner ring, we can check if the generation angles are suitable
-        if (r == 0 && !isInnerRingOk(env->mc, env->seed, x1-112-8, z1-112-8, x2+112+8, z2+112+8, rmin, rmax))
-            return cond->count == 0 ? COND_OK : COND_FAILED;
+        // check if the area is entirely outside the radii ranges in which strongholds can generate
+        if (rmax < 512*512)// 40 + nextInt(16) == 40 chunk ~ 55 chunk -> 40 chunk - 8 chunk (village)
+            return COND_FAILED;
 
         // pre-biome-checks complete, the area appears to line up with possible generation positions
         if (env->searchpass != PASS_FULL_64)
@@ -1656,11 +1589,10 @@ L_qm_any:
                 rmax = 0;
 
             StrongholdIter sh;
-            initFirstStronghold(&sh, env->mc, env->seed);
             icnt = 0;
             xt = zt = 0;
             env->init4Dim(DIM_OVERWORLD);
-            while (nextStronghold(&sh, &env->g) > 0)
+            while (nextVillageStronghold(&sh, &env->g) > 0)
             {
                 if (*env->stop)
                     break;
@@ -1814,7 +1746,7 @@ L_qm_any:
             sample.stop = env->stop;
 
             uint64_t rng;
-            setSeed(&rng, env->seed);
+            JsetSeed(&rng, env->seed);
 
             int (*f)(Generator *, int, int, int, int, void *);
 
@@ -1865,7 +1797,7 @@ L_qm_any:
         if (imax) *imax = 1;
         if (env->searchpass == PASS_FAST_48)
             return COND_MAYBE_POS_VALID;
-        if (env->searchpass == PASS_FULL_48)
+        if (env->searchpass == PASS_FULL_32)
         {
             if (env->mc < MC_1_13 || cond->type != F_BIOME_256_OTEMP)
                 return COND_MAYBE_POS_VALID;

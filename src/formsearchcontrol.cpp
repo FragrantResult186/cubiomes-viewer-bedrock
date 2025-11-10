@@ -20,23 +20,23 @@ QVariant SeedTableModel::data(const QModelIndex& index, int role) const
     {
         if (index.column() == COL_SEED)
             return seeds[index.row()].txtSeed;
-        if (index.column() == COL_HEX48)
-            return seeds[index.row()].txtHex48;
-        if (index.column() == COL_TOP16)
-            return seeds[index.row()].txtTop16;
+        if (index.column() == COL_HEX32)
+            return seeds[index.row()].txtHex32;
+        if (index.column() == COL_TOP32)
+            return seeds[index.row()].txtTop32;
     }
     else if (role == Qt::UserRole)
     {
-        if (index.column() == COL_HEX48)
-            return seeds[index.row()].varHex48;
-        if (index.column() == COL_TOP16)
-            return seeds[index.row()].varTop16;
+        if (index.column() == COL_HEX32)
+            return seeds[index.row()].varHex32;
+        if (index.column() == COL_TOP32)
+            return seeds[index.row()].varTop32;
         return seeds[index.row()].varSeed;
     }
     else if (role == Qt::TextAlignmentRole)
     {
         static QVariant align = QVariant::fromValue((int)Qt::AlignRight | Qt::AlignVCenter);
-        if (index.column() != COL_HEX48)
+        if (index.column() != COL_HEX32)
             return align;
     }
     return QVariant();
@@ -52,10 +52,10 @@ QVariant SeedTableModel::headerData(int section, Qt::Orientation orientation, in
     {
         if (section == COL_SEED)
             return QVariant::fromValue(tr("seed"));
-        if (section == COL_TOP16)
-            return QVariant::fromValue(tr("top 16"));
-        if (section == COL_HEX48)
-            return QVariant::fromValue(tr("lower 48 bit"));
+        if (section == COL_TOP32)
+            return QVariant::fromValue(tr("top 32"));
+        if (section == COL_HEX32)
+            return QVariant::fromValue(tr("lower 32 bit"));
     }
     if (role == Qt::DisplayRole && orientation == Qt::Vertical)
         return QVariant::fromValue(section + 1);
@@ -71,11 +71,11 @@ int SeedTableModel::insertSeeds(QVector<uint64_t> newseeds)
         Seed s;
         s.seed = seed;
         s.varSeed = QVariant::fromValue(seed);
-        s.varTop16 = QVariant::fromValue((quint64)(seed>>48) & 0xFFFF);
-        s.varHex48 = QVariant::fromValue((quint64)(seed & MASK48));
+        s.varTop32 = QVariant::fromValue((quint64)(seed>>32) & 0xFFFFFFFF);
+        s.varHex32 = QVariant::fromValue((quint64)(seed & MASK32));
         s.txtSeed = QVariant::fromValue(QString::asprintf("%" PRId64, seed));
-        s.txtTop16 = QVariant::fromValue(QString::asprintf("%04llx", (quint64)(seed>>48) & 0xFFFF));
-        s.txtHex48 = QVariant::fromValue(QString::asprintf("%012llx", (quint64)(seed & MASK48)));
+        s.txtTop32 = QVariant::fromValue(QString::asprintf("%08llx", (quint64)(seed>>32) & 0xFFFFFFFF));
+        s.txtHex32 = QVariant::fromValue(QString::asprintf("%08llx", (quint64)(seed & MASK32)));
         seeds.append(s);
     }
     endInsertRows();
@@ -120,8 +120,8 @@ FormSearchControl::FormSearchControl(MainWindow *parent)
     ui->setupUi(this);
 
     ui->comboSearchType->addItem(tr("incremental"), SEARCH_INC);
-    ui->comboSearchType->addItem(tr("48-bit only"), SEARCH_48ONLY);
-    ui->comboSearchType->addItem(tr("48-bit family blocks"), SEARCH_BLOCKS);
+    ui->comboSearchType->addItem(tr("32-bit only"), SEARCH_32ONLY);
+    ui->comboSearchType->addItem(tr("32-bit family blocks"), SEARCH_BLOCKS);
     ui->comboSearchType->addItem(tr("seed list from file..."), SEARCH_LIST);
 
     model = new SeedTableModel(ui->results);
@@ -165,7 +165,7 @@ bool FormSearchControl::event(QEvent *e)
     {
         QFontMetrics fm = QFontMetrics(ui->results->font());
         ui->results->setColumnWidth(SeedTableModel::COL_SEED, txtWidth(fm, QString(24, '#')));
-        ui->results->setColumnWidth(SeedTableModel::COL_TOP16, txtWidth(fm, QString(12, '#')));
+        ui->results->setColumnWidth(SeedTableModel::COL_TOP32, txtWidth(fm, QString(12, '#')));
         ui->results->verticalHeader()->setDefaultSectionSize(fm.height());
     }
     return QWidget::event(e);
@@ -198,7 +198,7 @@ SearchConfig FormSearchControl::getSearchConfig()
 bool FormSearchControl::setSearchConfig(SearchConfig s, bool quiet)
 {
     bool ok = true;
-    if (s.searchtype >= SEARCH_INC && s.searchtype <= SEARCH_48ONLY)
+    if (s.searchtype >= SEARCH_INC && s.searchtype <= SEARCH_32ONLY)
     {
         ui->comboSearchType->setCurrentIndex(ui->comboSearchType->findData(s.searchtype));
         on_comboSearchType_currentIndexChanged(s.searchtype);
@@ -508,13 +508,13 @@ void FormSearchControl::on_buttonSearchHelp_clicked()
         "restrict this type of search to a value range using the "
         "&quot;...&quot; button."
         "</p><p>"
-        "When using <b>48-bit only</b>, the search checks partial seeds and "
+        "When using <b>32-bit only</b>, the search checks partial seeds and "
         "will not test the full conditions. Instead it yields seed bases "
         "that may satify the conditions without knowing the upper 16-bit of "
         "the seed. A session file saved from this search is suitable to be used "
         "later with the 48-bit generator to look for matching seeds."
         "</p><p>"
-        "With <b>48-bit family blocks</b> the search looks for suitable "
+        "With <b>32-bit family blocks</b> the search looks for suitable "
         "48-bit seeds first and parallelizes the search through the upper "
         "16-bits. This search type can be a better match for exhaustive searches "
         "and those with very restrictive structure requirements."

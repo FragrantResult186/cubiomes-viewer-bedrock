@@ -29,7 +29,7 @@ public:
     explicit SeedTableModel(QObject *parent = nullptr) :
         QAbstractTableModel(parent) {}
 
-    enum { COL_SEED, COL_TOP16, COL_HEX48, COL_MAX };
+    enum { COL_SEED, COL_TOP32, COL_HEX32, COL_MAX };
 
     virtual int rowCount(const QModelIndex&) const override { return seeds.size(); }
     virtual int columnCount(const QModelIndex&) const override { return COL_MAX; }
@@ -44,8 +44,8 @@ public:
     struct Seed
     {
         uint64_t seed;
-        QVariant varSeed, varHex48, varTop16;
-        QVariant txtSeed, txtHex48, txtTop16;
+        QVariant varSeed, varHex32, varTop32;
+        QVariant txtSeed, txtHex32, txtTop32;
     };
     QList<Seed> seeds;
 };

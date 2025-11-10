@@ -78,7 +78,6 @@ enum
     F_SCALE_TO_OVERWORLD,
     F_LOGIC_OR,
     F_SPIRAL_4,
-    F_FIRST_STRONGHOLD,
     F_CLIMATE_NOISE,
     F_ANCIENT_CITY,
     F_LOGIC_NOT,
@@ -375,15 +374,6 @@ static const struct FilterList : private FilterInfo
             "Check the approximate surface height at scale 1:4 at a single coordinate.")
         };
 
-        list[F_FIRST_STRONGHOLD] = FilterInfo{
-            CAT_OTHER, 0, LOC_RAD, 0, 1, BR_NONE, MC_B1_8, MC_NEWEST, 0, 0, disp++,
-            "stronghold",
-            QT_TRANSLATE_NOOP("Filter", "First stronghold"),
-            QT_TRANSLATE_NOOP("Filter",
-            "Finds the approxmiate location of the first stronghold "
-            "(+/-112 blocks). Depends only on the 48-bit seed.")
-        };
-
         list[F_STRONGHOLD] = FilterInfo{
             CAT_STRUCT, 1, LOC_RAD, 0, 1, BR_CLUST, MC_B1_8, MC_NEWEST, 0, 0, disp++,
             "stronghold",
@@ -668,7 +658,7 @@ enum
 enum
 {
     PASS_FAST_48,       // only do fast checks that do not require biome gen
-    PASS_FULL_48,       // include possible biome checks for 48-bit seeds
+    PASS_FULL_32,       // include possible biome checks for 32-bit seeds
     PASS_FULL_64,       // run full test on a 64-bit seed
 };
 

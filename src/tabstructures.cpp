@@ -118,7 +118,6 @@ void AnalysisStructures::runStructs(Generator *g)
     if (!stop && mapshow[D_STRONGHOLD] && (dim == DIM_UNDEF || dim == DIM_OVERWORLD))
     {
         StrongholdIter sh;
-        initFirstStronghold(&sh, wi.mc, wi.seed);
         std::vector<Pos> shp;
         applySeed(g, DIM_OVERWORLD, wi.seed);
 
@@ -130,7 +129,7 @@ void AnalysisStructures::runStructs(Generator *g)
         int rmax = xt*xt + zt*zt;
         rmax = (int)((sqrt(rmax) - 1408) / 3072);
 
-        while (nextStronghold(&sh, g) > 0)
+        while (nextVillageStronghold(&sh, g) > 0)
         {
             if (stop || sh.ringnum > rmax)
                 break;

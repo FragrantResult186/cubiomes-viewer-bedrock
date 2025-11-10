@@ -3044,7 +3044,7 @@ Nur für Strukturen mit region-size = 32 und chunk-gap = 8</translation>
     </message>
     <message>
         <location filename="../../src/formsearchcontrol.ui" line="51"/>
-        <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;searching algorithm&lt;/p&gt;&lt;p&gt;incremental: best for non-exhaustive biome searches&lt;/p&gt;&lt;p&gt;48-bit family blocks: best for searches with strong structure restrictions&lt;/p&gt;&lt;p&gt;seed list from file...: load and search through a pre-computed list of seed&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
+        <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;searching algorithm&lt;/p&gt;&lt;p&gt;incremental: best for non-exhaustive biome searches&lt;/p&gt;&lt;p&gt;32-bit family blocks: best for searches with strong structure restrictions&lt;/p&gt;&lt;p&gt;seed list from file...: load and search through a pre-computed list of seed&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
         <translation>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Suchalgorithmus&lt;/p&gt;&lt;p&gt;inkrementell: geeignet für eine unvollständige Biomsuche&lt;/p&gt;&lt;p&gt;48-Bit Familien: geeignet für eine stark einschränkende Struktursuche&lt;/p&gt;&lt;p&gt;Seedliste...: durchsucht eine Liste aus vorher berechnete Seeds&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</translation>
     </message>
     <message>
@@ -3064,12 +3064,12 @@ Nur für Strukturen mit region-size = 32 und chunk-gap = 8</translation>
     </message>
     <message>
         <location filename="../../src/formsearchcontrol.cpp" line="123"/>
-        <source>48-bit only</source>
+        <source>32-bit only</source>
         <translation>48-Bit Teil-Seed</translation>
     </message>
     <message>
         <location filename="../../src/formsearchcontrol.cpp" line="124"/>
-        <source>48-bit family blocks</source>
+        <source>32-bit family blocks</source>
         <translation>48-Bit Seedblöcke</translation>
     </message>
     <message>
@@ -3188,7 +3188,7 @@ Nur für Strukturen mit region-size = 32 und chunk-gap = 8</translation>
     </message>
     <message>
         <location filename="../../src/formsearchcontrol.cpp" line="503"/>
-        <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;The &lt;b&gt;incremental&lt;/b&gt; search checks seeds in numerical order, except for grouping seeds into work items for parallelization. This is the recommended option for general searches. You can restrict this type of search to a value range using the &amp;quot;...&amp;quot; button.&lt;/p&gt;&lt;p&gt;When using &lt;b&gt;48-bit only&lt;/b&gt;, the search checks partial seeds and will not test the full conditions. Instead it yields seed bases that may satify the conditions without knowing the upper 16-bit of the seed. A session file saved from this search is suitable to be used later with the 48-bit generator to look for matching seeds.&lt;/p&gt;&lt;p&gt;With &lt;b&gt;48-bit family blocks&lt;/b&gt; the search looks for suitable 48-bit seeds first and parallelizes the search through the upper 16-bits. This search type can be a better match for exhaustive searches and those with very restrictive structure requirements.&lt;/p&gt;&lt;p&gt;Load a &lt;b&gt;seed list from a file&lt;/b&gt; to search through an existing set of seeds. The seeds should be in decimal ASCII text, separated by newline characters. You can browse for a file using the &amp;quot;...&amp;quot; button. (The seed generator is ignored with this option.)&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
+        <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;The &lt;b&gt;incremental&lt;/b&gt; search checks seeds in numerical order, except for grouping seeds into work items for parallelization. This is the recommended option for general searches. You can restrict this type of search to a value range using the &amp;quot;...&amp;quot; button.&lt;/p&gt;&lt;p&gt;When using &lt;b&gt;32-bit only&lt;/b&gt;, the search checks partial seeds and will not test the full conditions. Instead it yields seed bases that may satify the conditions without knowing the upper 16-bit of the seed. A session file saved from this search is suitable to be used later with the 48-bit generator to look for matching seeds.&lt;/p&gt;&lt;p&gt;With &lt;b&gt;32-bit family blocks&lt;/b&gt; the search looks for suitable 48-bit seeds first and parallelizes the search through the upper 16-bits. This search type can be a better match for exhaustive searches and those with very restrictive structure requirements.&lt;/p&gt;&lt;p&gt;Load a &lt;b&gt;seed list from a file&lt;/b&gt; to search through an existing set of seeds. The seeds should be in decimal ASCII text, separated by newline characters. You can browse for a file using the &amp;quot;...&amp;quot; button. (The seed generator is ignored with this option.)&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -4710,13 +4710,13 @@ Weiter auf den Stop der Threads warten?</numerusform>
     </message>
     <message>
         <location filename="../../src/formsearchcontrol.cpp" line="56"/>
-        <source>top 16</source>
-        <translation>obere 16</translation>
+        <source>top 32</source>
+        <translation>obere 32</translation>
     </message>
     <message>
         <location filename="../../src/formsearchcontrol.cpp" line="58"/>
-        <source>lower 48 bit</source>
-        <translation>untere 48 Bit</translation>
+        <source>lower 32 bit</source>
+        <translation>untere 32 Bit</translation>
     </message>
 </context>
 <context>

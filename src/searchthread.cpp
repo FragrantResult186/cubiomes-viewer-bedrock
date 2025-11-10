@@ -475,10 +475,10 @@ void SearchMaster::preSearch()
         }
     }
 
-    if (searchtype == SEARCH_48ONLY)
+    if (searchtype == SEARCH_32ONLY)
     {
         if (!slist.empty())
-        {   // 48-bit seed list
+        {   // 32-bit seed list
             scnt = slist.size();
             for (idx = 0; idx < scnt; idx++)
                 if (slist[idx] == sstart)
@@ -492,7 +492,7 @@ void SearchMaster::preSearch()
         else
         {
             prog = seed = sstart;
-            scnt = smax = MASK48;
+            scnt = smax = MASK32;
             if (seed > smax)
                 isdone = true;
         }
@@ -505,29 +505,29 @@ void SearchMaster::preSearch()
             seed = sstart;
             if (seed < smin)
                 seed = smin;
-            scnt = 0x10000 * slist.size();
-            uint64_t high = (seed >> 48) & 0xffff;
+            scnt = 0x100000000ULL * slist.size();
+            uint64_t high = (seed >> 32) & 0xFFFFFFFFULL;
             for (idx = 0; idx < slist.size(); idx++)
-                if (slist[idx] >= (seed & MASK48))
+                if (slist[idx] >= (seed & MASK32))
                     break;
             if (idx == slist.size())
             {
-                if (high++ >= (smax >> 48))
+                if (high++ >= (smax >> 32))
                     isdone = true;
                 idx = 0;
             }
-            seed = (high << 48) | slist[idx];
+            seed = (high << 32) | slist[idx];
             // trim the search space to the range [smin, smax]
             uint64_t idxmin, idxmax;
             for (idxmin = 0; idxmin < slist.size(); idxmin++)
-                if (slist[idxmin] >= (smin & MASK48))
+                if (slist[idxmin] >= (smin & MASK32))
                     break;
             for (idxmax = 0; idxmax < slist.size(); idxmax++)
-                if (slist[idxmax] >= (smax & MASK48))
+                if (slist[idxmax] >= (smax & MASK32))
                     break;
-            high = (high - (smin >> 48)) & 0xffff;
+            high = (high - (smin >> 32)) & 0xFFFFFFFFULL;
             prog = high * slist.size() + idx - idxmin;
-            high = ((smax >> 48) - (smin >> 48)) & 0xffff;
+            high = ((smax >> 32) - (smin >> 32)) & 0xFFFFFFFFULL;
             scnt = high * slist.size() + idxmax - idxmin;
         }
         else
@@ -546,24 +546,24 @@ void SearchMaster::preSearch()
     {
         if (!slist.empty())
         {
-            scnt = 0x10000 * slist.size();
+            scnt = 0x100000000ULL * slist.size();
             for (idx = 0; idx < slist.size(); idx++)
-                if (slist[idx] >= (sstart & MASK48))
+                if (slist[idx] >= (sstart & MASK32))
                     break;
             if (idx == slist.size())
                 isdone = true;
             else
             {
-                seed = (sstart & ~MASK48) | slist[idx];
-                prog = 0x10000 * idx + (seed >> 48);
+                seed = (sstart & ~MASK32) | slist[idx];
+                prog = 0x100000000ULL * idx + (seed >> 32);
             }
-            smax = slist.back() | (0xffffULL << 48);
+            smax = slist.back() | (0xFFFFFFFFULL << 32);
         }
         else
         {
             scnt = smax = ~(uint64_t)0;
             seed = sstart;
-            prog = (seed << 16) | (seed >> 48);
+            prog = seed;// (seed << 32) | (seed >> 32);
         }
     }
 }
@@ -802,7 +802,7 @@ bool SearchMaster::requestItem(SearchWorker *item)
             isdone = true;
     }
 
-    if (searchtype == SEARCH_48ONLY)
+    if (searchtype == SEARCH_32ONLY)
     {
         if (!slist.empty())
         {
@@ -815,7 +815,7 @@ bool SearchMaster::requestItem(SearchWorker *item)
         else
         {
             seed += itemsize;
-            if (seed > MASK48)
+            if (seed > MASK32)
                 isdone = true;
         }
     }
@@ -824,12 +824,12 @@ bool SearchMaster::requestItem(SearchWorker *item)
     {
         if (!slist.empty())
         {
-            uint64_t high = (seed >> 48) & 0xffff;
+            uint64_t high = (seed >> 32) & 0xFFFFFFFFULL;
             idx += itemsize;
             high += idx / slist.size();
             idx %= slist.size();
-            seed = (high << 48) | slist[idx];
-            if (high > (smax >> 48))
+            seed = (high << 32) | slist[idx];
+            if (high > (smax >> 32))
                 isdone = true;
         }
         else
@@ -848,9 +848,9 @@ bool SearchMaster::requestItem(SearchWorker *item)
     {
         if (!slist.empty())
         {
-            uint64_t high = (seed >> 48) & 0xffff;
+            uint64_t high = (seed >> 32) & 0xFFFFFFFFULL;
             high += itemsize;
-            if (high >= 0x10000)
+            if (high >= 0x100000000ULL)
             {
                 high = 0;
                 idx++;
@@ -858,21 +858,21 @@ bool SearchMaster::requestItem(SearchWorker *item)
             if (idx >= slist.size())
                 isdone = true;
             else
-                seed = (high << 48) | slist[idx];
+                seed = (high << 32) | slist[idx];
         }
         else
         {
             Pos origin = {0,0};
-            uint64_t high = (seed >> 48) & 0xffff;
-            uint64_t low = seed & MASK48;
+            uint64_t high = (seed >> 32) & 0xFFFFFFFFULL;
+            uint64_t low = seed & MASK32;
             high += itemsize;
-            if (high >= 0x10000)
+            if (high >= 0x100000000ULL)
             {
-                item->scnt -= 0x10000 - high;
+                item->scnt -= 0x100000000ULL - high;
                 high = 0;
                 low++;
 
-                for (; low <= MASK48 && !stop; low++)
+                for (; low <= MASK32 && !stop; low++)
                 {
                     env.setSeed(low);
                     if (testTreeAt(origin, &env, PASS_FAST_48, nullptr)
@@ -882,12 +882,12 @@ bool SearchMaster::requestItem(SearchWorker *item)
                     }
                     // update progress for skipped block
                     seed = low;
-                    prog += 0x10000;
+                    prog += 0x100000000ULL;
                 }
-                if (low > MASK48)
+                if (low > MASK32)
                     isdone = true;
             }
-            seed = (high << 48) | low;
+            seed = (high << 32) | low;
         }
     }
 
@@ -966,7 +966,7 @@ void SearchWorker::run()
         }
         break;
 
-    case SEARCH_48ONLY:
+    case SEARCH_32ONLY:
         while (!*env.stop && getNextItem())
         {
             if (slist)
@@ -976,7 +976,7 @@ void SearchWorker::run()
                 {
                     seed = slist[i];
                     env.setSeed(seed);
-                    if (testTreeAt(origin, &env, PASS_FULL_48, nullptr) != COND_FAILED)
+                    if (testTreeAt(origin, &env, PASS_FULL_32, nullptr) != COND_FAILED)
                     {
                         if (!*env.stop)
                             emit result(seed);
@@ -989,13 +989,13 @@ void SearchWorker::run()
                 for (int i = 0; i < scnt; i++)
                 {
                     env.setSeed(seed);
-                    if (testTreeAt(origin, &env, PASS_FULL_48, nullptr) != COND_FAILED)
+                    if (testTreeAt(origin, &env, PASS_FULL_32, nullptr) != COND_FAILED)
                     {
                         if (!*env.stop)
                             emit result(seed);
                     }
 
-                    if (seed >= MASK48)
+                    if (seed >= MASK32)
                     {   // done
                         break;
                     }
@@ -1010,12 +1010,12 @@ void SearchWorker::run()
         {
             if (slist)
             {   // seed = (high << 48) | slist[..]
-                uint64_t high = (sstart >> 48) & 0xffff;
+                uint64_t high = (sstart >> 32) & 0xFFFFFFFFULL;
                 uint64_t lowidx = idx;
 
                 for (int i = 0; i < scnt; i++)
                 {
-                    seed = (high << 48) | slist[lowidx];
+                    seed = (high << 32) | slist[lowidx];
 
                     env.setSeed(seed);
                     if (testTreeAt(origin, &env, PASS_FULL_64, nullptr) == COND_OK)
@@ -1027,7 +1027,7 @@ void SearchWorker::run()
                     if (++lowidx >= len)
                     {
                         lowidx = 0;
-                        if (++high >= 0x10000)
+                        if (++high >= 0x100000000ULL)
                         {   // done
                             break;
                         }
@@ -1064,22 +1064,22 @@ void SearchWorker::run()
                 continue;
             }
 
-            uint64_t high = (sstart >> 48) & 0xffff;
+            uint64_t high = (sstart >> 32) & 0xFFFFFFFFULL;
             uint64_t low;
             if (slist)
                 low = slist[idx];
             else
-                low = sstart & MASK48;
+                low = sstart & MASK32;
 
             env.setSeed(low);
-            if (testTreeAt(origin, &env, PASS_FULL_48, nullptr) == COND_FAILED)
+            if (testTreeAt(origin, &env, PASS_FULL_32, nullptr) == COND_FAILED)
             {
                 continue;
             }
 
             for (int i = 0; i < scnt; i++)
             {
-                seed = (high << 48) | low;
+                seed = (high << 32) | low;
 
                 env.setSeed(seed);
                 if (testTreeAt(origin, &env, PASS_FULL_64, nullptr) == COND_OK)
@@ -1088,7 +1088,7 @@ void SearchWorker::run()
                         emit result(seed);
                 }
 
-                if (++high >= 0x10000)
+                if (++high >= 0x100000000ULL)
                     break; // done
             }
         }
