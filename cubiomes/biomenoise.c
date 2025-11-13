@@ -20,11 +20,10 @@
 
 void initSurfaceNoise(SurfaceNoise *sn, int dim, uint64_t seed)
 {
-    uint64_t s;
-    setSeed(&s, seed);
-    octaveInit(&sn->octmin, &s, sn->oct+0, -15, 16);
-    octaveInit(&sn->octmax, &s, sn->oct+16, -15, 16);
-    octaveInit(&sn->octmain, &s, sn->oct+32, -7, 8);
+    setSeed(seed);
+    octaveInit(&sn->octmin, sn->oct+0, -15, 16);
+    octaveInit(&sn->octmax, sn->oct+16, -15, 16);
+    octaveInit(&sn->octmain, sn->oct+32, -7, 8);
     if (dim == DIM_END)
     {
         sn->xzScale = 2.0;
@@ -34,9 +33,9 @@ void initSurfaceNoise(SurfaceNoise *sn, int dim, uint64_t seed)
     }
     else // DIM_OVERWORLD
     {
-        octaveInit(&sn->octsurf, &s, sn->oct+40, -3, 4);
-        skipNextN(&s, 262*10);
-        octaveInit(&sn->octdepth, &s, sn->oct+44, -15, 16);
+        octaveInit(&sn->octsurf, sn->oct+40, -3, 4);
+        skipNextN(262*10);
+        octaveInit(&sn->octdepth, sn->oct+44, -15, 16);
         sn->xzScale = 0.9999999814507745;
         sn->yScale = 0.9999999814507745;
         sn->xzFactor = 80;
@@ -47,12 +46,12 @@ void initSurfaceNoise(SurfaceNoise *sn, int dim, uint64_t seed)
 void initSurfaceNoiseBeta(SurfaceNoiseBeta *snb, uint64_t seed)
 {
     uint64_t s;
-    setSeed(&s, seed);
+    setSeed(seed);
 
     octaveInitBeta(&snb->octmin, &s, snb->oct+0, 16, 684.412, 0.5, 1.0, 2.0);
     octaveInitBeta(&snb->octmax, &s, snb->oct+16, 16, 684.412, 0.5, 1.0, 2.0);
     octaveInitBeta(&snb->octmain, &s, snb->oct+32, 8, 684.412/80.0, 0.5, 1.0, 2.0);
-    skipNextN(&s, 262*8);
+    skipNextN(262*8);
     octaveInitBeta(&snb->octcontA, &s, snb->oct+40, 10, 1.121, 0.5, 1.0, 2.0);
     octaveInitBeta(&snb->octcontB, &s, snb->oct+50, 16, 200.0, 0.5, 1.0, 2.0);
 }
@@ -164,10 +163,10 @@ double sampleSurfaceNoise(const SurfaceNoise *sn, int x, int y, int z)
 void setNetherSeed(NetherNoise *nn, uint64_t seed)
 {
     uint64_t s;
-    setSeed(&s, seed);
-    doublePerlinInit(&nn->temperature, &s, &nn->oct[0], &nn->oct[2], -7, 2);
-    setSeed(&s, seed+1);
-    doublePerlinInit(&nn->humidity, &s, &nn->oct[4], &nn->oct[6], -7, 2);
+    setSeed(seed);
+    doublePerlinInit(&nn->temperature, &nn->oct[0], &nn->oct[2], -7, 2);
+    setSeed(seed+1);
+    doublePerlinInit(&nn->humidity, &nn->oct[4], &nn->oct[6], -7, 2);
 }
 
 /* Gets the 3D nether biome at scale 1:4 (for 1.16+).
@@ -370,9 +369,9 @@ int genNetherScaled(const NetherNoise *nn, int *out, Range r, int mc, uint64_t s
 void setEndSeed(EndNoise *en, int mc, uint64_t seed)
 {
     uint64_t s;
-    setSeed(&s, seed);
-    skipNextN(&s, 17292);
-    perlinInit(&en->perlin, &s);
+    setSeed(seed);
+    skipNextN(17292);
+    perlinInit(&en->perlin);
     en->mc = mc;
 }
 
@@ -421,8 +420,6 @@ static int getEndBiome(int hx, int hz, const uint16_t *hmap, int hw)
         return end_highlands;
     else if (h <= 10000)
         return end_midlands;
-    else if (h <= 14400)
-        return end_barrens;
 
     return small_end_islands;
 }
@@ -468,15 +465,6 @@ int mapEndBiome(const EndNoise *en, int *out, int x, int z, int w, int h)
             {
                 hx = 2*hx + 1;
                 hz = 2*hz + 1;
-                if (en->mc > MC_1_13)
-                {   // add outer end rings
-                    rsq = hx * hx + hz * hz;
-                    if ((int)rsq < 0)
-                    {
-                        out[j*w+i] = end_barrens;
-                        continue;
-                    }
-                }
                 uint16_t *p_elev = &hmap[(hz/2-z)*hw + (hx/2-x)];
                 out[j*w+i] = getEndBiome(hx, hz, p_elev, hw);
             }
@@ -807,18 +795,11 @@ int genEndScaled(const EndNoise *en, int *out, Range r, int mc, uint64_t sha)
                     out[j*r.sx+i] = the_end;
                     continue;
                 }
-                else if (mc > MC_1_13 && (int)(rsq) < 0)
-                {
-                    out[j*r.sx+i] = end_barrens;
-                    continue;
-                }
                 float h = getEndHeightNoise(en, hx, hz, 4);
                 if (h > 40)
                     out[j*r.sx+i] = end_highlands;
                 else if (h >= 0)
                     out[j*r.sx+i] = end_midlands;
-                else if (h >= -20)
-                    out[j*r.sx+i] = end_barrens;
                 else
                     out[j*r.sx+i] = small_end_islands;
             }
@@ -928,13 +909,13 @@ void setBiomeSeed(BiomeNoise *bn, uint64_t seed, int large)
 void setBetaBiomeSeed(BiomeNoiseBeta *bnb, uint64_t seed)
 {
     uint64_t seedScratch;
-    setSeed(&seedScratch, seed*9871);
+    setSeed(seed*9871);
     octaveInitBeta(bnb->climate, &seedScratch, bnb->oct,
         4, 0.025/1.5, 0.25, 0.55, 2.0);
-    setSeed(&seedScratch, seed*39811);
+    setSeed(seed*39811);
     octaveInitBeta(bnb->climate+1, &seedScratch, bnb->oct+4,
         4, 0.05/1.5, 1./3, 0.55, 2.0);
-    setSeed(&seedScratch, seed*0x84a59L);
+    setSeed(seed*0x84a59L);
     octaveInitBeta(bnb->climate+2, &seedScratch, bnb->oct+8,
         2, 0.25/1.5, 10./17, 0.55, 2.0);
     bnb->nptype = -1;
@@ -1358,7 +1339,6 @@ int getOldBetaBiome(float t, float h)
     };
     static const int bmap[] = {
         plains, desert, forest, taiga, swamp, snowy_tundra, savanna,
-        seasonal_forest, rainforest, shrubland
     };
     int idx = (int)(t * 63) + (int)(h * 63) * 64;
     return bmap[ biome_table_beta_1_7[idx] ];

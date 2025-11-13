@@ -1318,7 +1318,7 @@ L_qm_any:
                     {   // we can test for abandoned villages before the
                         // biome checks by trying each suitable biome
                         int vv[] = {
-                            plains, desert, savanna, taiga, snowy_tundra,
+                            plains, desert, savanna, taiga, snowy_plains,
                             // plains village variant covers meadows
                         };
                         int vn = env->mc <= MC_1_13 ? 1 : sizeof(vv) / sizeof(int);
@@ -1667,7 +1667,7 @@ L_qm_any:
         {
             for (int rx = rx1; rx <= rx2; rx++)
             {
-                if (isSlimeChunk(env->seed, rx, rz))
+                if (isSlimeChunk(rx, rz))
                 {
                     if (cond->skipref && rx == at.x >> 4 && rz == at.z >> 4)
                         continue;

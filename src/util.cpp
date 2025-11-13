@@ -95,7 +95,6 @@ QString getBiomeDisplay(int mc, int id)
     case small_end_islands:             return QApplication::translate("Biome", "Small End Islands");
     case end_midlands:                  return QApplication::translate("Biome", "End Midlands");
     case end_highlands:                 return QApplication::translate("Biome", "End Highlands");
-    case end_barrens:                   return QApplication::translate("Biome", "End Barrens");
     case warm_ocean:                    return QApplication::translate("Biome", "Warm Ocean");
     case lukewarm_ocean:                return QApplication::translate("Biome", "Lukewarm Ocean");
     case cold_ocean:                    return QApplication::translate("Biome", "Cold Ocean");
@@ -104,10 +103,6 @@ QString getBiomeDisplay(int mc, int id)
     case deep_cold_ocean:               return QApplication::translate("Biome", "Deep Cold Ocean");
     // 50
     case deep_frozen_ocean:             return QApplication::translate("Biome", "Deep Frozen Ocean");
-    // Alpha 1.2 - Beta 1.7
-    case seasonal_forest:               return QApplication::translate("Biome", "Seasonal Forest");
-    case shrubland:                     return QApplication::translate("Biome", "Shrubland");
-    case rainforest:                    return QApplication::translate("Biome", "Rain Forest");
 
     case the_void:                      return QApplication::translate("Biome", "The Void");
 

@@ -174,7 +174,7 @@ const char *biome2str(int mc, int id)
     // 10
     case frozen_ocean: return "frozen_ocean";
     case frozen_river: return "frozen_river";
-    case snowy_tundra: return "snowy_tundra";
+    case snowy_plains: return "snowy_plains";
     case snowy_mountains: return "snowy_mountains";
     case mushroom_fields: return "mushroom_fields";
     case mushroom_field_shore: return "mushroom_field_shore";
@@ -205,10 +205,6 @@ const char *biome2str(int mc, int id)
     case wooded_badlands_plateau: return "wooded_badlands_plateau";
     case badlands_plateau: return "badlands_plateau";
     // 40  --  1.13
-    case small_end_islands: return "small_end_islands";
-    case end_midlands: return "end_midlands";
-    case end_highlands: return "end_highlands";
-    case end_barrens: return "end_barrens";
     case warm_ocean: return "warm_ocean";
     case lukewarm_ocean: return "lukewarm_ocean";
     case cold_ocean: return "cold_ocean";
@@ -217,10 +213,6 @@ const char *biome2str(int mc, int id)
     case deep_cold_ocean: return "deep_cold_ocean";
     // 50
     case deep_frozen_ocean: return "deep_frozen_ocean";
-    // Alpha 1.2 - Beta 1.7
-    case seasonal_forest: return "seasonal_forest";
-    case shrubland: return "shrubland";
-    case rainforest: return "rainforest";
 
     case the_void: return "the_void";
 
@@ -259,11 +251,7 @@ const char *biome2str(int mc, int id)
     case lush_caves: return "lush_caves";
     // 1.18
     case meadow: return "meadow";
-    case grove: return "grove";
-    case snowy_slopes: return "snowy_slopes";
     case stony_peaks: return "stony_peaks";
-    case jagged_peaks: return "jagged_peaks";
-    case frozen_peaks: return "frozen_peaks";
     // 1.19
     case deep_dark: return "deep_dark";
     case mangrove_swamp: return "mangrove_swamp";
@@ -366,7 +354,6 @@ void initBiomeColors(unsigned char colors[256][3])
     setColor(colors, small_end_islands,                0x4b4bab); // 8080ff
     setColor(colors, end_midlands,                     0xc9c959); // 8080ff
     setColor(colors, end_highlands,                    0xb5b536); // 8080ff
-    setColor(colors, end_barrens,                      0x7070cc); // 8080ff
     setColor(colors, warm_ocean,                       0x0000ac);
     setColor(colors, lukewarm_ocean,                   0x000090);
     setColor(colors, cold_ocean,                       0x202070);
@@ -374,9 +361,6 @@ void initBiomeColors(unsigned char colors[256][3])
     setColor(colors, deep_lukewarm_ocean,              0x000040);
     setColor(colors, deep_cold_ocean,                  0x202038);
     setColor(colors, deep_frozen_ocean,                0x404090);
-    setColor(colors, seasonal_forest,                  0x2f560f); // -
-    setColor(colors, rainforest,                       0x47840e); // -
-    setColor(colors, shrubland,                        0x789e31); // -
     setColor(colors, the_void,                         0x000000);
     setColor(colors, sunflower_plains,                 0xb5db88);
     setColor(colors, desert_lakes,                     0xffbc40);

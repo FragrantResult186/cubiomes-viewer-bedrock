@@ -8,7 +8,7 @@ int biomeExists(int mc, int id)
     {
         if (id >= soul_sand_valley && id <= basalt_deltas)
             return 1;
-        if (id >= small_end_islands && id <= end_barrens)
+        if (id >= small_end_islands)
             return 1;
 
         if (id == pale_garden)
@@ -92,9 +92,6 @@ int biomeExists(int mc, int id)
         case swamp:
         case snowy_tundra:
         case savanna:
-        case seasonal_forest:
-        case rainforest:
-        case shrubland:
         // we treat areas below the sea level as oceans
         case ocean:
         case frozen_ocean:
@@ -134,7 +131,6 @@ int biomeExists(int mc, int id)
     if (id >= ocean             && id <= mountain_edge)     return 1;
     if (id >= jungle            && id <= jungle_hills)      return mc >= MC_1_2;
     if (id >= jungle_edge       && id <= badlands_plateau)  return mc >= MC_1_7;
-    if (id >= small_end_islands && id <= end_barrens)       return mc >= MC_1_9;
     if (id >= warm_ocean        && id <= deep_frozen_ocean) return mc >= MC_1_13;
 
     switch (id)
@@ -184,7 +180,6 @@ int isOverworld(int mc, int id)
     if (!biomeExists(mc, id))
         return 0;
 
-    if (id >= small_end_islands && id <= end_barrens) return 0;
     if (id >= soul_sand_valley && id <= basalt_deltas) return 0;
 
     switch (id)
@@ -210,7 +205,7 @@ int isOverworld(int mc, int id)
 
 int getDimension(int id)
 {
-    if (id >= small_end_islands && id <= end_barrens) return DIM_END;
+    if (id >= small_end_islands) return DIM_END;
     if (id >= soul_sand_valley && id <= basalt_deltas) return DIM_NETHER;
     if (id == the_end) return DIM_END;
     if (id == nether_wastes) return DIM_NETHER;

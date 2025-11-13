@@ -1249,7 +1249,7 @@ void QWorld::draw(QPainter& painter, int vw, int vh, qreal focusx, qreal focusz,
             {
                 for (int i = 0; i < w; i++)
                 {
-                    int isslime = isSlimeChunk(wi.seed, i+x, j+z);
+                    int isslime = isSlimeChunk(i+x, j+z);
                     slimeimg.setPixel(i, j, isslime);
                 }
             }

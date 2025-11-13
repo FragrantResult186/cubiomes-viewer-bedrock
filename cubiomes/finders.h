@@ -247,6 +247,9 @@ Pos getJLargeStructurePos(StructureConfig config, uint64_t seed, int regX, int r
 static inline ATTR(const)
 Pos getJLargeStructureChunkInRegion(StructureConfig config, uint64_t seed, int regX, int regZ);
 
+int getStaticStronghold(StructureConfig sconf, uint64_t seed, 
+    int regionX, int regionZ, Pos *pos);
+
 /* Checks a chunk area, starting at (chunkX, chunkZ) with size (chunkW, chunkH)
  * for Mineshaft positions. If not NULL, positions are written to the buffer
  * 'out' up to a maximum number of 'nout'. The return value is the number of
@@ -257,10 +260,10 @@ int getMineshafts(int mc, uint64_t seed, int chunkX, int chunkZ,
 
 // not exacly a structure
 static inline ATTR(const)
-int isSlimeChunk(uint64_t seed, int chunkX, int chunkZ)
+int isSlimeChunk(int chunkX, int chunkZ)
 {
-    setSeed(&seed, (chunkX * 522133279) ^ chunkZ);
-    return nextInt(&seed, 10) == 0;
+    seedSlimeChunk(chunkX, chunkZ);
+    return nextInt(10) == 0;
 }
 
 /* Finds the position and size of the small end islands in a given chunk.
@@ -732,9 +735,9 @@ Pos getFeatureChunkInRegion(StructureConfig config, uint64_t seed, int regX, int
 {
     Pos pos;
     seed = seed + regX*341873128712ULL + regZ*132897987541ULL + config.salt;
-    setSeed(&seed, seed);
-    pos.x = nextInt(&seed, config.chunkRange);
-    pos.z = nextInt(&seed, config.chunkRange);
+    setSeed(seed);
+    pos.x = nextInt(config.chunkRange);
+    pos.z = nextInt(config.chunkRange);
     return pos;
 }
 
@@ -753,9 +756,9 @@ Pos getLargeStructureChunkInRegion(StructureConfig config, uint64_t seed, int re
 {
     Pos pos;
     seed = seed + regX*341873128712ULL + regZ*132897987541ULL + config.salt;
-    setSeed(&seed, seed);
-    pos.x = (nextInt(&seed, config.chunkRange) + nextInt(&seed, config.chunkRange)) / 2;
-    pos.z = (nextInt(&seed, config.chunkRange) + nextInt(&seed, config.chunkRange)) / 2;
+    setSeed(seed);
+    pos.x = (nextInt(config.chunkRange) + nextInt(config.chunkRange)) / 2;
+    pos.z = (nextInt(config.chunkRange) + nextInt(config.chunkRange)) / 2;
     return pos;
 }
 
@@ -774,11 +777,11 @@ Pos getJFeatureChunkInRegion(StructureConfig config, uint64_t seed, int regX, in
 {
     /*
     // Vanilla like implementation.
-    setSeed(&seed, regX*341873128712 + regZ*132897987541 + seed + config.salt);
+    setSeed(regX*341873128712 + regZ*132897987541 + seed + config.salt);
 
     Pos pos;
-    pos.x = nextInt(&seed, 24);
-    pos.z = nextInt(&seed, 24);
+    pos.x = nextInt(24);
+    pos.z = nextInt(24);
     */
     Pos pos;
     const uint64_t K = 0x5deece66dULL;
