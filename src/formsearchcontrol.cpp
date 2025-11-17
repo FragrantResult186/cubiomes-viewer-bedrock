@@ -700,7 +700,7 @@ int FormSearchControl::searchResultsAdd(std::vector<uint64_t> seeds, bool counto
 void FormSearchControl::searchProgressReset()
 {
     uint64_t cnt = parent->formGen48->estimateSeedCnt();
-    if (cnt > MASK48)
+    if (cnt > MASK32)
         cnt = ~(uint64_t)0;
     else
         cnt <<= 16;

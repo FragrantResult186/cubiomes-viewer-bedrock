@@ -195,6 +195,7 @@ ConditionDialog::ConditionDialog(FormConditions *parent, MapView *mapview, Confi
     ui->checkAbandoned->setStyleSheet(tristyle);
     ui->checkEndShip->setStyleSheet(tristyle);
     ui->checkBasement->setStyleSheet(tristyle);
+    ui->checkMegaRavine->setStyleSheet(tristyle);
 
     memset(climaterange, 0, sizeof(climaterange));
     memset(climatecomplete, 0, sizeof(climatecomplete));
@@ -426,6 +427,7 @@ ConditionDialog::ConditionDialog(FormConditions *parent, MapView *mapview, Confi
         ui->checkAbandoned->setCheckState(totristate(cond.varflags, Condition::VAR_ABANODONED));
         ui->checkEndShip->setCheckState(totristate(cond.varflags, Condition::VAR_ENDSHIP));
         ui->checkBasement->setCheckState(totristate(cond.varflags, Condition::VAR_BASEMENT));
+        ui->checkMegaRavine->setCheckState(totristate(cond.varflags, Condition::VAR_MEGARAVINE));
         for (VariantCheckBox *cb : qAsConst(variantboxes))
         {
             int idx = cb->sp - g_start_pieces;
@@ -645,6 +647,11 @@ void ConditionDialog::updateMode()
     {
         ui->stackedWidget->setCurrentWidget(ui->pageIgloo);
         ui->checkEndShip->setEnabled(wi.mc >= MC_1_9);
+    }
+    else if (filterindex == F_RAVINE)
+    {
+        ui->stackedWidget->setCurrentWidget(ui->pageRavine);
+        ui->checkMegaRavine->setEnabled(wi.mc >= MC_1_0);
     }
     else if (filterindex == F_HEIGHT)
     {
@@ -1149,6 +1156,7 @@ void ConditionDialog::onAccept()
     c.varflags |= tristateFlags(ui->checkAbandoned, Condition::VAR_ABANODONED);
     c.varflags |= tristateFlags(ui->checkEndShip, Condition::VAR_ENDSHIP);
     c.varflags |= tristateFlags(ui->checkBasement, Condition::VAR_BASEMENT);
+    c.varflags |= tristateFlags(ui->checkMegaRavine, Condition::VAR_MEGARAVINE);
 
     for (VariantCheckBox *cb : qAsConst(variantboxes))
     {

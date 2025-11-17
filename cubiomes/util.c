@@ -75,6 +75,7 @@ const char* mc2str(int mc)
     case MC_1_20:   return "1.20"; break;
     case MC_1_21_1: return "1.21.1"; break;
     case MC_1_21_3: return "1.21.3"; break;
+    case MC_1_21_60: return "1.21.60"; break;
     case MC_1_21_WD: return "1.21 WD"; break;
     default:        return "?";
     }
@@ -84,6 +85,7 @@ int str2mc(const char *s)
 {
     if (!strcmp(s, "1.21"))     return MC_1_21;
     if (!strcmp(s, "1.21 WD"))  return MC_1_21_WD;
+    if (!strcmp(s, "1.21.60"))  return MC_1_21_60;
     if (!strcmp(s, "1.21.3"))   return MC_1_21_3;
     if (!strcmp(s, "1.21.2"))   return MC_1_21_3; // backwards compatibility
     if (!strcmp(s, "1.21.1"))   return MC_1_21_1;
@@ -279,6 +281,7 @@ const char* struct2str(int stype)
     case Outpost:           return "pillager_outpost";
     case Treasure:          return "buried_treasure";
     case Mineshaft:         return "mineshaft";
+    case Ravine:            return "ravine";
     case Desert_Well:       return "desert_well";
     case Ruined_Portal:     return "ruined_portal";
     case Ruined_Portal_N:   return "ruined_portal_nether";
@@ -354,6 +357,7 @@ void initBiomeColors(unsigned char colors[256][3])
     setColor(colors, small_end_islands,                0x4b4bab); // 8080ff
     setColor(colors, end_midlands,                     0xc9c959); // 8080ff
     setColor(colors, end_highlands,                    0xb5b536); // 8080ff
+    setColor(colors, end_barrens,                      0x7070cc); // 8080ff
     setColor(colors, warm_ocean,                       0x0000ac);
     setColor(colors, lukewarm_ocean,                   0x000090);
     setColor(colors, cold_ocean,                       0x202070);

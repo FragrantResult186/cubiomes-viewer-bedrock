@@ -32,6 +32,7 @@ enum StructureType
     Ancient_City,
     Treasure,
     Mineshaft,
+    Ravine,
     Desert_Well,
     Geode,
     Fortress,
@@ -79,11 +80,12 @@ STRUCT(StrongholdIter)
 STRUCT(StructureVariant)
 {
     uint8_t abandoned   :1; // is zombie village
-    uint8_t giant       :1; // giant portal variant
+    uint8_t giant       :1; // giant portal variant & mega ravine
     uint8_t underground :1; // underground portal
     uint8_t airpocket   :1; // portal with air pocket
     uint8_t basement    :1; // igloo with basement
     uint8_t cracked     :1; // geode with crack
+    float_t thick;          // ravine thickness
     uint8_t size;           // geode size | igloo middel pieces
     uint8_t start;          // starting piece index
     short   biome;          // biome variant
@@ -256,6 +258,9 @@ int getStaticStronghold(StructureConfig sconf, uint64_t seed,
  * chunks with Mineshafts in the area.
  */
 int getMineshafts(int mc, uint64_t seed, int chunkX, int chunkZ,
+        int chunkW, int chunkH, Pos *out, int nout);
+
+int getRavines(int mc, uint64_t seed, int chunkX, int chunkZ,
         int chunkW, int chunkH, Pos *out, int nout);
 
 // not exacly a structure
@@ -448,6 +453,10 @@ enum
     FORTRESS_END,
     PIECE_COUNT,
 };
+
+static void moveBelowSeaLevel(Piece *list, int count, int seaLevel, int minWorldHeight, int offset);
+static void moveInsideHeights(Piece *list, int count, int minY, int maxY);
+static void offsetPiecesVertically(Piece *list, int count, int dy);
 
 /* Find the 20 fixed inner positions where End Gateways generate upon defeating
  * the Dragon. The positions are written to 'src' in generation order.

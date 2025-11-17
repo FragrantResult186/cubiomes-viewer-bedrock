@@ -114,6 +114,7 @@ enum {
     D_SHIPWRECK,
     D_TREASURE,
     D_MINESHAFT,
+    D_RAVINE,
     D_WELL,
     D_GEODE,
     D_OUTPOST,

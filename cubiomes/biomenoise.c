@@ -162,7 +162,6 @@ double sampleSurfaceNoise(const SurfaceNoise *sn, int x, int y, int z)
 
 void setNetherSeed(NetherNoise *nn, uint64_t seed)
 {
-    uint64_t s;
     setSeed(seed);
     doublePerlinInit(&nn->temperature, &nn->oct[0], &nn->oct[2], -7, 2);
     setSeed(seed+1);
@@ -368,7 +367,6 @@ int genNetherScaled(const NetherNoise *nn, int *out, Range r, int mc, uint64_t s
 
 void setEndSeed(EndNoise *en, int mc, uint64_t seed)
 {
-    uint64_t s;
     setSeed(seed);
     skipNextN(17292);
     perlinInit(&en->perlin);
@@ -420,6 +418,8 @@ static int getEndBiome(int hx, int hz, const uint16_t *hmap, int hw)
         return end_highlands;
     else if (h <= 10000)
         return end_midlands;
+    else if (h <= 14400)
+        return end_barrens;
 
     return small_end_islands;
 }
@@ -570,16 +570,16 @@ void sampleNoiseColumnEnd(double column[],
     };
 
     int y;
-    if (en->mc > MC_1_13)
-    {   // add outer end rings
-        uint64_t rsq = (uint64_t) x * x + (uint64_t) z * z;
-        if ((int)rsq < 0)
-        {
-            for (y = colymin; y <= colymax; y++)
-                column[y - colymin] = nan("");
-            return;
-        }
+
+    // add outer end rings
+    uint64_t rsq = (uint64_t) x * x + (uint64_t) z * z;
+    if ((int)rsq < 0)
+    {
+        for (y = colymin; y <= colymax; y++)
+            column[y - colymin] = nan("");
+        return;
     }
+
 
     // depth is between [-108, +72]
     // noise is between [-128, +128]
@@ -731,14 +731,6 @@ int genEndScaled(const EndNoise *en, int *out, Range r, int mc, uint64_t sha)
     if (r.sy == 0)
         r.sy = 1;
 
-    if (mc <= MC_1_8)
-    {
-        uint64_t i, siz = (uint64_t)r.sx*r.sy*r.sz;
-        for (i = 0; i < siz; i++)
-            out[i] = the_end;
-        return 0;
-    }
-
     int err, iy;
 
     if (r.scale == 1)
@@ -795,11 +787,18 @@ int genEndScaled(const EndNoise *en, int *out, Range r, int mc, uint64_t sha)
                     out[j*r.sx+i] = the_end;
                     continue;
                 }
+                else if (mc > MC_1_13 && (int)(rsq) < 0)
+                {
+                    out[j*r.sx+i] = end_barrens;
+                    continue;
+                }
                 float h = getEndHeightNoise(en, hx, hz, 4);
                 if (h > 40)
                     out[j*r.sx+i] = end_highlands;
                 else if (h >= 0)
                     out[j*r.sx+i] = end_midlands;
+                else if (h >= -20)
+                    out[j*r.sx+i] = end_barrens;
                 else
                     out[j*r.sx+i] = small_end_islands;
             }

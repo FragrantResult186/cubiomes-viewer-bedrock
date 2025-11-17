@@ -34,6 +34,7 @@ enum MCVersion
     MC_1_20_6, MC_1_20 = MC_1_20_6,
     MC_1_21_1,
     MC_1_21_3,
+    MC_1_21_60,
     MC_1_21_WD, // Winter Drop, version TBA
     MC_1_21 = MC_1_21_WD,
     MC_NEWEST = MC_1_21,
@@ -98,7 +99,7 @@ enum BiomeID
     small_end_islands,
     end_midlands,
     end_highlands,
-    end_barrens,
+    end_barrens,// java only
     warm_ocean,                 warmOcean = warm_ocean,
     lukewarm_ocean,             lukewarmOcean = lukewarm_ocean,
     cold_ocean,                 coldOcean = cold_ocean,
@@ -202,4 +203,3 @@ int isSnowy(int id);
 #endif
 
 #endif /* BIOMES_H_ */
-

@@ -152,6 +152,7 @@ QString mapopt2display(int opt)
     case D_SHIPWRECK:   return QApplication::translate("Map", "Shipwreck");
     case D_TREASURE:    return QApplication::translate("Map", "Buried Treasure");
     case D_MINESHAFT:   return QApplication::translate("Map", "Mineshaft");
+    case D_RAVINE:      return QApplication::translate("Map", "Ravine");
     case D_WELL:        return QApplication::translate("Map", "Desert Well");
     case D_GEODE:       return QApplication::translate("Map", "Geode");
     case D_OUTPOST:     return QApplication::translate("Map", "Pillager Outpost");
@@ -187,6 +188,7 @@ const char *mapopt2str(int opt) // to resource string
     case D_SHIPWRECK:   return "shipwreck";
     case D_TREASURE:    return "treasure";
     case D_MINESHAFT:   return "mineshaft";
+    case D_RAVINE:      return "ravine";
     case D_WELL:        return "well";
     case D_GEODE:       return "geode";
     case D_OUTPOST:     return "outpost";
@@ -220,6 +222,7 @@ int str2mapopt(const char *s) // from resource string
     if (!strcmp(s, "shipwreck"))    return D_SHIPWRECK;
     if (!strcmp(s, "treasure"))     return D_TREASURE;
     if (!strcmp(s, "mineshaft"))    return D_MINESHAFT;
+    if (!strcmp(s, "ravine"))       return D_RAVINE;
     if (!strcmp(s, "well"))         return D_WELL;
     if (!strcmp(s, "geode"))        return D_GEODE;
     if (!strcmp(s, "outpost"))      return D_OUTPOST;
@@ -252,6 +255,7 @@ int mapopt2stype(int opt)
     case D_SHIPWRECK:   return Shipwreck;
     case D_TREASURE:    return Treasure;
     case D_MINESHAFT:   return Mineshaft;
+    case D_RAVINE:      return Ravine;
     case D_WELL:        return Desert_Well;
     case D_GEODE:       return Geode;
     case D_OUTPOST:     return Outpost;

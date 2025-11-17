@@ -58,8 +58,8 @@ static inline void skipNextN(int n)
 
 #define REGION_A 341873128712L
 #define REGION_B 132897987541L
-#define REGION_C 784295783249L
-#define REGION_D 827828252345L
+#define REGION_SH_A 784295783249L
+#define REGION_SH_B 827828252345L
 
 static inline int setTerrainSeed(int chunkX, int chunkZ)
 {
@@ -71,8 +71,8 @@ static inline int setTerrainSeed(int chunkX, int chunkZ)
 static inline int setPopulationSeed(uint64_t worldSeed, int x, int z)
 {
     setSeed(worldSeed);
-    uint64_t a = next() | 1;
-    uint64_t b = next() | 1;
+    uint32_t a = next() | 1;
+    uint32_t b = next() | 1;
     int seed = (x * a + z * b) ^ (int)worldSeed;
     setSeed(seed);
     return seed;
@@ -100,14 +100,9 @@ static inline int setCarverSeed(uint64_t worldSeed, int chunkX, int chunkZ)
 
 static inline int setRegionSeed(uint64_t worldSeed, int regionX, int regionZ, int salt)
 {
-    int seed = (regionX * (int)REGION_A) + (regionZ * (int)REGION_B) + (int)worldSeed + salt;
-    setSeed(seed);
-    return seed;
-}
-
-static inline int setStrongholdSeed(uint64_t worldSeed, int regionX, int regionZ, int salt)
-{
-    int seed = (regionX * (int)REGION_C) + (regionZ * (int)REGION_D) + (int)worldSeed + salt;
+    int a = salt == 97858791/*sh salt*/ ? REGION_SH_A: REGION_A;
+    int b = salt == 97858791/*sh salt*/ ? REGION_SH_B: REGION_B;
+    int seed = (regionX * a) + (regionZ * b) + (int)worldSeed + salt;
     setSeed(seed);
     return seed;
 }

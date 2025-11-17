@@ -61,6 +61,8 @@
         <file>icons/gateway_d.png</file>
         <file>icons/mineshaft.png</file>
         <file>icons/mineshaft_d.png</file>
+        <file>icons/ravine.png</file>
+        <file>icons/ravine_d.png</file>
         <file>icons/helper.png</file>
         <file>icons/reference.png</file>
         <file>icons/ancient_city_d.png</file>
@@ -68,6 +70,7 @@
         <file>icons/logo.png</file>
         <file>icons/portal_lit.png</file>
         <file>icons/portal_giant.png</file>
+        <file>icons/ravine_giant.png</file>
         <file>icons/end_ship.png</file>
         <file>icons/check_exclude_d.png</file>
         <file>icons/check_include_d.png</file>

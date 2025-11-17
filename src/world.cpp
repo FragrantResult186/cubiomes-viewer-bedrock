@@ -14,7 +14,8 @@ const QPixmap& getMapIcon(int opt, VarPos *vp)
 {
     static QPixmap icons[D_STRUCT_NUM];
     static QPixmap iconzvil;
-    static QPixmap icongiant;
+    static QPixmap icongiant_p;
+    static QPixmap icongiant_r;
     static QPixmap iconship;
     static QPixmap iconbasement;
     static QMutex mutex;
@@ -27,7 +28,8 @@ const QPixmap& getMapIcon(int opt, VarPos *vp)
             icons[sopt] = getPix(mapopt2str(sopt), w);
         icons[D_PORTALN] = icons[D_PORTAL];
         iconzvil         = getPix("zombie", w);
-        icongiant        = getPix("portal_giant", w);
+        icongiant_p      = getPix("portal_giant", w);
+        icongiant_r      = getPix("ravine_giant", w);
         iconship         = getPix("end_ship", w);
         iconbasement     = getPix("igloo_basement", w);
     }
@@ -40,7 +42,9 @@ const QPixmap& getMapIcon(int opt, VarPos *vp)
     if (opt == D_IGLOO && vp->v.basement)
         return iconbasement;
     if ((opt == D_PORTAL || opt == D_PORTALN) && vp->v.giant)
-        return icongiant;
+        return icongiant_p;
+    if ((opt == D_RAVINE) && vp->v.giant)
+        return icongiant_r;
     if (opt == D_ENDCITY)
     {
         for (Piece& p : vp->pieces)
@@ -87,6 +91,13 @@ QStringList VarPos::detail() const
             sinfo.append("underground");
         if (v.airpocket)
             sinfo.append("airpocket");
+    }
+    else if (type == Ravine)
+    {
+        sinfo.append(QString::asprintf("x=%d", p.x+v.x));
+        sinfo.append(QString::asprintf("y=%d", v.y));
+        sinfo.append(QString::asprintf("z=%d", p.z+v.z));
+        sinfo.append(QString::asprintf("thick=%f", v.thick));
     }
     else if (type == End_City)
     {

@@ -860,6 +860,12 @@ static bool isVariantOk(const Condition *c, SearchThreadEnv *e, int stype, int v
         }
         return false;
     }
+    else if (stype == Ravine)
+    {
+        if (!(c->varflags & Condition::VAR_MEGARAVINE)) return true;
+        getVariant(&sv, stype, e->mc, e->seed, pos->x, pos->z, -1);
+        return (c->varflags & Condition::VAR_NOT ? !sv.giant : sv.giant);
+    }
     else
     {
         return true;
@@ -1138,7 +1144,7 @@ L_qh_any:
         rz2 = z2 >> 9;
 
         n = scanForQuads(
-                sconf, 128, (env->seed) & MASK48, seeds, 20, sconf.salt,
+                sconf, 128, (env->seed) & MASK32, seeds, 20, sconf.salt,
                 rx1, rz1, rx2 - rx1 + 1, rz2 - rz1 + 1, &p[0], MAX_INSTANCES);
         if (n < 1)
             return COND_FAILED;
@@ -1495,6 +1501,95 @@ L_qm_any:
         }
         return COND_FAILED;
 
+    case F_RAVINE:
+        
+        rx1 = x1 >> 4;
+        rz1 = z1 >> 4;
+        rx2 = x2 >> 4;
+        rz2 = z2 >> 4;
+
+        if (imax && cond->count > 0)
+        {   // just check there are at least *inst (== cond->count) instances
+            *imax = icnt =
+                getRavines(env->mc, env->seed, rx1, rz1, rx2, rz2, cent, *imax);
+            if (cond->varflags)
+            {
+                if (!isVariantOk(cond, env, st, -1, &pc))
+                    return COND_FAILED;
+            }
+            if (rmax)
+            {   // filter out the instances that are outside the radius
+                int j = 0;
+                for (int i = 0; i < icnt; i++)
+                {
+                    int dx = cent[i].x - at.x;
+                    int dz = cent[i].z - at.z;
+                    int64_t rsq = dx*(int64_t)dx + dz*(int64_t)dz;
+                    if (rsq < rmax)
+                        cent[j++] = cent[i];
+                }
+                *imax = icnt = j;
+            }
+            if (cond->skipref && icnt > 0)
+            {   // remove origin instance
+                for (int i = 0; i < icnt; i++)
+                {
+                    if (cent[i].x == at.x && cent[i].z == at.z)
+                    {
+                        cent[i] = cent[icnt-1];
+                        *imax = --icnt;
+                        break;
+                    }
+                }
+            }
+            if (icnt >= cond->count)
+                return COND_OK;
+        }
+        else
+        {
+            icnt = getRavines(env->mc, env->seed, rx1, rz1, rx2, rz2, &p[0], MAX_INSTANCES);
+            if (cond->varflags)
+            {
+                if (!isVariantOk(cond, env, st, -1, &pc))
+                    return COND_FAILED;
+            }
+            if (icnt < cond->count)
+                return COND_FAILED;
+            xt = zt = 0;
+            int j = 0;
+            for (int i = 0; i < icnt; i++)
+            {
+                if (rmax)
+                {
+                    int dx = cent[i].x - at.x;
+                    int dz = cent[i].z - at.z;
+                    int64_t rsq = dx*(int64_t)dx + dz*(int64_t)dz;
+                    if (rsq >= rmax)
+                        continue;
+                }
+                if (cond->skipref && p[i].x == at.x && p[i].z == at.z)
+                    continue;
+                xt += p[i].x;
+                zt += p[i].z;
+                j++;
+            }
+            if (cond->count <= 0)
+            {
+                cent->x = (x1 + x2) >> 1;
+                cent->z = (z1 + z2) >> 1;
+                if (imax) *imax = 1;
+                if (j == 0)
+                    return COND_OK;
+            }
+            else if (j >= cond->count)
+            {
+                cent->x = xt / j;
+                cent->z = zt / j;
+                if (imax) *imax = 1;
+                return COND_OK;
+            }
+        }
+        return COND_FAILED;
 
     case F_SPAWN:
 

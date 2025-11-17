@@ -250,6 +250,7 @@ lua_State *loadScript(QString path, QString *err)
             {Ruined_Portal_N, "Ruined_Portal_N"},
             {Treasure, "Treasure"},
             {Mineshaft, "Mineshaft"},
+            {Ravine, "Ravine"},
             {Fortress, "Fortress"},
             {Bastion, "Bastion"},
             {End_City, "End_City"},

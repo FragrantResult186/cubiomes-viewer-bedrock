@@ -168,6 +168,7 @@ MainWindow::MainWindow(QString sessionpath, QString resultspath, QWidget *parent
     addMapAction(D_STRONGHOLD);
     addMapAction(D_VILLAGE);
     addMapAction(D_MINESHAFT);
+    addMapAction(D_RAVINE);
     addMapAction(D_DESERT);
     addMapAction(D_JUNGLE);
     addMapAction(D_HUT);

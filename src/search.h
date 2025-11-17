@@ -67,6 +67,7 @@ enum
     F_PORTALN,
     F_GATEWAY,
     F_MINESHAFT,
+    F_RAVINE,
     F_SPIRAL,
     F_SPIRAL_16,
     F_SPIRAL_64,
@@ -395,6 +396,13 @@ static const struct FilterList : private FilterInfo
             ""
         };
 
+        list[F_RAVINE] = FilterInfo{
+            CAT_STRUCT, 1, LOC_RAD, Ravine, 1, BR_CLUST, MC_B1_8, MC_NEWEST, 0, 0, disp++,
+            "ravine",
+            QT_TRANSLATE_NOOP("Filter", "ravine"),
+            ""
+        };
+
         list[F_DESERT] = FilterInfo{
             CAT_STRUCT, 1, LOC_RAD, Desert_Pyramid, 1, BR_CLUST, MC_1_3, MC_NEWEST, 0, 0, disp++,
             "desert",
@@ -579,6 +587,7 @@ struct /*__attribute__((packed))*/ Condition
         VAR_DENSE_BB    = 0x0008, // fortress with a 2x2 arrangement of start/crossings
         VAR_NOT         = 0x0010, // invert flag (e.g. not abandoned)
         VAR_BASEMENT    = 0x0020, // igloo with basement
+        VAR_MEGARAVINE  = 0x0040, // mega ravine
     };
     enum { // min/max
         // legacy 0:min<= 1:max>= 2:min>= 3:max<=
