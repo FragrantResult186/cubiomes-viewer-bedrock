@@ -2062,8 +2062,7 @@ int getVariant(StructureVariant *r, int structType, int mc, uint64_t seed,
         r->z = nextInt(16);
         nextFloat();// yaw
         nextFloat();// pitch
-        r->thick = nextFloat();
-        r->thick = nextFloat();
+        r->thick = (nextFloat() + nextFloat()) * 3.0f;
         r->giant = nextFloat() < 0.05f;
         return 1;
 
