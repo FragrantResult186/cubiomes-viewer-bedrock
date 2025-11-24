@@ -541,8 +541,7 @@ int xDoublePerlinInit(DoublePerlinNoise *noise, Xoroshiro *xr,
     if (nmax > 0)
     {
         na = (nmax + 1) >> 1;
-        nb = nmax - na;
-    }
+        nb = nmax - na;}
     n += xOctaveInit(&noise->octA, xr, octaves+n, amplitudes, omin, len, na);
     n += xOctaveInit(&noise->octB, xr, octaves+n, amplitudes, omin, len, nb);
 

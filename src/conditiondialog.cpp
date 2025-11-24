@@ -631,27 +631,27 @@ void ConditionDialog::updateMode()
     else if (filterindex == F_BASTION)
     {
         ui->stackedWidget->setCurrentWidget(ui->pageBastion);
-        ui->checkStartBastion->setEnabled(wi.mc >= MC_1_16_1);
+        ui->checkStartBastion->setEnabled(wi.mc >= MC_1_16);
     }
     else if (filterindex == F_PORTAL || filterindex == F_PORTALN)
     {
         ui->stackedWidget->setCurrentWidget(ui->pagePortal);
-        ui->checkStartPortal->setEnabled(wi.mc >= MC_1_16_1);
+        ui->checkStartPortal->setEnabled(wi.mc >= MC_1_16);
     }
     else if (filterindex == F_ENDCITY)
     {
         ui->stackedWidget->setCurrentWidget(ui->pageEndCity);
-        ui->checkBasement->setEnabled(wi.mc >= MC_1_9);
+        ui->checkEndShip->setEnabled(wi.mc >= MC_1_0);
     }
     else if (filterindex == F_IGLOO)
     {
         ui->stackedWidget->setCurrentWidget(ui->pageIgloo);
-        ui->checkEndShip->setEnabled(wi.mc >= MC_1_9);
+        ui->checkBasement->setEnabled(wi.mc >= MC_1_0);
     }
     else if (filterindex == F_RAVINE)
     {
         ui->stackedWidget->setCurrentWidget(ui->pageRavine);
-        ui->checkMegaRavine->setEnabled(wi.mc >= MC_1_0);
+        ui->checkMegaRavine->setEnabled(wi.mc >= MC_1_2);
     }
     else if (filterindex == F_HEIGHT)
     {

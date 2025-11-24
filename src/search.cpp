@@ -321,7 +321,7 @@ void SearchThreadEnv::init4Dim(int dim)
         applySeed(&g, dim, seed);
         this->surfdim = DIM_UNDEF;
     }
-    else if (g.mc >= MC_1_15 && seed != g.seed)
+    else if (g.mc >= MC_1_16 && seed != g.seed)
     {
         g.sha = getVoronoiSHA(seed);
     }
@@ -801,13 +801,13 @@ static bool isVariantOk(const Condition *c, SearchThreadEnv *e, int stype, int v
     }
     else if (stype == Bastion)
     {
-        if (e->mc <= MC_1_15) return true;
+        if (e->mc <= MC_1_14) return true;
         getVariant(&sv, stype, e->mc, e->seed, pos->x, pos->z, -1);
         if (!(c->varflags & Condition::VAR_WITH_START)) return true;
     }
     else if (stype == Ruined_Portal || stype == Ruined_Portal_N)
     {
-        if (e->mc <= MC_1_15) return true;
+        if (e->mc <= MC_1_14) return true;
         e->init4Dim(stype == Ruined_Portal ? DIM_OVERWORLD : DIM_NETHER);
         varbiome = getBiomeAt(&e->g, 4, (pos->x >> 2) + 2, 0, (pos->z >> 2) + 2);
         getVariant(&sv, stype, e->mc, e->seed, pos->x, pos->z, varbiome);
@@ -863,7 +863,7 @@ static bool isVariantOk(const Condition *c, SearchThreadEnv *e, int stype, int v
     else if (stype == Ravine)
     {
         if (!(c->varflags & Condition::VAR_MEGARAVINE)) return true;
-        getVariant(&sv, stype, e->mc, e->seed, pos->x, pos->z, -1);
+        getVariant(&sv, stype, e->mc, e->seed, pos->x, pos->z, varbiome);
         return (c->varflags & Condition::VAR_NOT ? !sv.giant : sv.giant);
     }
     else
@@ -1256,6 +1256,7 @@ L_qm_any:
     case F_SHIPWRECK:
     case F_TREASURE:
     case F_WELL:
+    case F_LAVALAKE:
     case F_PORTAL:
     case F_PORTALN:
     case F_ANCIENT_CITY:
@@ -1726,8 +1727,6 @@ L_qm_any:
                         icnt++;
                     }
                 }
-                if (sh.ringnum > r)
-                    break;
             }
             if (cond->count == 0)
             {   // exclusion

@@ -14,8 +14,10 @@ const QPixmap& getMapIcon(int opt, VarPos *vp)
 {
     static QPixmap icons[D_STRUCT_NUM];
     static QPixmap iconzvil;
-    static QPixmap icongiant_p;
-    static QPixmap icongiant_r;
+    static QPixmap icongiantportal;
+    static QPixmap iconmegaravine;
+    static QPixmap iconravine_underwater;
+    static QPixmap iconmegaravine_underwater;
     static QPixmap iconship;
     static QPixmap iconbasement;
     static QMutex mutex;
@@ -24,14 +26,16 @@ const QPixmap& getMapIcon(int opt, VarPos *vp)
     int w = (int) round(g_iconscale * 20);
     if (icons[D_DESERT].width() != w)
     {
-        for (int sopt = D_DESERT; sopt <= D_STRONGHOLD; sopt++)
+        for (int sopt = D_DESERT; sopt <= D_SPAWN; sopt++)
             icons[sopt] = getPix(mapopt2str(sopt), w);
         icons[D_PORTALN] = icons[D_PORTAL];
-        iconzvil         = getPix("zombie", w);
-        icongiant_p      = getPix("portal_giant", w);
-        icongiant_r      = getPix("ravine_giant", w);
-        iconship         = getPix("end_ship", w);
-        iconbasement     = getPix("igloo_basement", w);
+        iconzvil                  = getPix("zombie", w);
+        icongiantportal           = getPix("portal_giant", w);
+        iconmegaravine            = getPix("megaravine", w);
+        iconravine_underwater     = getPix("ravine_underwater", w);
+        iconmegaravine_underwater = getPix("megaravine_underwater", w);
+        iconship                  = getPix("end_ship", w);
+        iconbasement              = getPix("igloo_basement", w);
     }
     mutex.unlock();
 
@@ -42,9 +46,16 @@ const QPixmap& getMapIcon(int opt, VarPos *vp)
     if (opt == D_IGLOO && vp->v.basement)
         return iconbasement;
     if ((opt == D_PORTAL || opt == D_PORTALN) && vp->v.giant)
-        return icongiant_p;
-    if ((opt == D_RAVINE) && vp->v.giant)
-        return icongiant_r;
+        return icongiantportal;
+    if (opt == D_RAVINE)
+    {
+        if (vp->v.giant && vp->v.underwater)
+            return iconmegaravine_underwater;
+        if (vp->v.giant)
+            return iconmegaravine;
+        if (vp->v.underwater)
+            return iconravine_underwater;
+    }
     if (opt == D_ENDCITY)
     {
         for (Piece& p : vp->pieces)
@@ -98,6 +109,12 @@ QStringList VarPos::detail() const
         sinfo.append(QString::asprintf("y=%d", v.y));
         sinfo.append(QString::asprintf("z=%d", p.z+v.z));
         sinfo.append(QString::asprintf("thick=%f", v.thick));
+    }
+    else if (type == Lava_Lake)
+    {
+        sinfo.append(QString::asprintf("x=%d", p.x+v.x));
+        sinfo.append(QString::asprintf("y=%d", v.y));
+        sinfo.append(QString::asprintf("z=%d", p.z+v.z));
     }
     else if (type == End_City)
     {
@@ -225,6 +242,10 @@ void getStructs(std::vector<VarPos> *out, const StructureConfig sconf,
                 else if (sconf.structType == Ruined_Portal || sconf.structType == Ruined_Portal_N)
                 {
                     id = getBiomeAt(&g, 4, (p.x >> 2) + 2, 0, (p.z >> 2) + 2);
+                }
+                else if (sconf.structType == Ravine)
+                {
+                    id = getBiomeAt(&g, 4, p.x>>2, 0, p.z>>2);
                 }
                 else if (sconf.structType == Fortress)
                 {

@@ -119,15 +119,15 @@ void applySeed(Generator *g, int dim, uint64_t seed)
             setBiomeSeed(&g->bn, seed, g->flags & LARGE_BIOMES);
         }
     }
-    else if (dim == DIM_NETHER && g->mc >= MC_1_16_1)
+    else if (dim == DIM_NETHER && g->mc >= MC_1_16)
     {
         setNetherSeed(&g->nn, seed);
     }
-    else if (dim == DIM_END && g->mc >= MC_1_9)
+    else if (dim == DIM_END && g->mc >= MC_1_0)
     {
         setEndSeed(&g->en, g->mc, seed);
     }
-    if (g->mc >= MC_1_15)
+    if (g->mc >= MC_1_14)
     {
         if (g->mc <= MC_1_17 && dim == DIM_OVERWORLD && !g->entry)
             g->sha = g->ls.entry_1->startSalt;
@@ -299,8 +299,7 @@ static void setupScale(Layer *l, int scale)
 
 void setupLayerStack(LayerStack *g, int mc, int largeBiomes)
 {
-    if (mc < MC_1_3)
-        largeBiomes = 0;
+    largeBiomes = 0;
 
     memset(g, 0, sizeof(LayerStack));
     Layer *p, *l = g->layers;

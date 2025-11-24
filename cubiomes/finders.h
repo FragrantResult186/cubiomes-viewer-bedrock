@@ -21,7 +21,6 @@ enum StructureType
     Swamp_Hut,
     Igloo,
     Village,
-    Stronghold,
     Ocean_Ruin,
     Shipwreck,
     Monument,
@@ -33,6 +32,8 @@ enum StructureType
     Treasure,
     Mineshaft,
     Ravine,
+    Lava_Lake,
+    Stronghold,
     Desert_Well,
     Geode,
     Fortress,
@@ -50,8 +51,8 @@ enum StructureType
 STRUCT(StructureConfig)
 {
     int32_t salt;
-    int8_t  regionSize;
-    int8_t  chunkRange;
+    int16_t regionSize;
+    int16_t chunkRange;
     uint8_t structType;
     int8_t  dim;
     float   rarity;
@@ -65,14 +66,9 @@ STRUCT(Pos3) { int x, y, z; };
 STRUCT(StrongholdIter)
 {
     Pos pos;        // accurate location of current stronghold
-    Pos nextapprox; // approxmimate location (+/-112 blocks) of next stronghold
     int index;      // stronghold index counter
-    int ringnum;    // ring number for index
-    int ringmax;    // max index within ring
-    int ringidx;    // index within ring
     double angle;   // next angle within ring
     double dist;    // next distance from origin (in chunks)
-    uint64_t rnds;  // random number seed (48 bit)
     int mc;         // minecraft version
 };
 
@@ -82,6 +78,7 @@ STRUCT(StructureVariant)
     uint8_t abandoned   :1; // is zombie village
     uint8_t giant       :1; // giant portal variant & mega ravine
     uint8_t underground :1; // underground portal
+    uint8_t underwater  :1; // underwater ravine
     uint8_t airpocket   :1; // portal with air pocket
     uint8_t basement    :1; // igloo with basement
     uint8_t cracked     :1; // geode with crack
@@ -261,6 +258,9 @@ int getMineshafts(int mc, uint64_t seed, int chunkX, int chunkZ,
         int chunkW, int chunkH, Pos *out, int nout);
 
 int getRavines(int mc, uint64_t seed, int chunkX, int chunkZ,
+        int chunkW, int chunkH, Pos *out, int nout);
+
+int getLavaLakes(int mc, uint64_t seed, int chunkX, int chunkZ,
         int chunkW, int chunkH, Pos *out, int nout);
 
 // not exacly a structure

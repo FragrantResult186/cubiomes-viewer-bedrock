@@ -131,7 +131,7 @@ void AnalysisStructures::runStructs(Generator *g)
 
         while (nextVillageStronghold(&sh, g) > 0)
         {
-            if (stop || sh.ringnum > rmax)
+            if (stop)
                 break;
             Pos pos = sh.pos;
             if (pos.x >= area.x1 && pos.x <= area.x2 && pos.z >= area.z1 && pos.z <= area.z2)

@@ -1,7 +1,6 @@
 #include "biomenoise.h"
 
 #include "tables/btree18.h"
-#include "tables/btree192.h"
 #include "tables/btree19.h"
 #include "tables/btree20.h"
 #include "tables/btree21wd.h"
@@ -157,7 +156,7 @@ double sampleSurfaceNoise(const SurfaceNoise *sn, int x, int y, int z)
 }
 
 //==============================================================================
-// Nether (1.16+) and End (1.9+) Biome Generation
+// Nether (1.16+) and End (1.0+) Biome Generation
 //==============================================================================
 
 void setNetherSeed(NetherNoise *nn, uint64_t seed)
@@ -309,7 +308,7 @@ int genNetherScaled(const NetherNoise *nn, int *out, Range r, int mc, uint64_t s
 
     uint64_t siz = (uint64_t)r.sx*r.sy*r.sz;
 
-    if (mc <= MC_1_15)
+    if (mc <= MC_1_14)
     {
         uint64_t i;
         for (i = 0; i < siz; i++)
@@ -570,16 +569,16 @@ void sampleNoiseColumnEnd(double column[],
     };
 
     int y;
-
-    // add outer end rings
-    uint64_t rsq = (uint64_t) x * x + (uint64_t) z * z;
-    if ((int)rsq < 0)
-    {
-        for (y = colymin; y <= colymax; y++)
-            column[y - colymin] = nan("");
-        return;
+    if (en->mc >= MC_1_0)
+    {   // add outer end rings
+        uint64_t rsq = (uint64_t) x * x + (uint64_t) z * z;
+        if ((int)rsq < 0)
+        {
+            for (y = colymin; y <= colymax; y++)
+                column[y - colymin] = nan("");
+            return;
+        }
     }
-
 
     // depth is between [-108, +72]
     // noise is between [-128, +128]
@@ -1416,10 +1415,6 @@ int climateToBiome(int mc, const uint64_t np[6], uint64_t *dat)
         btree18_steps, &btree18_param[0][0], btree18_nodes, btree18_order,
         sizeof(btree18_nodes) / sizeof(uint64_t)
     };
-    static const BiomeTree btree192 = {
-        btree192_steps, &btree192_param[0][0], btree192_nodes, btree192_order,
-        sizeof(btree192_nodes) / sizeof(uint64_t)
-    };
     static const BiomeTree btree19 = {
         btree19_steps, &btree19_param[0][0], btree19_nodes, btree19_order,
         sizeof(btree19_nodes) / sizeof(uint64_t)
@@ -1436,14 +1431,12 @@ int climateToBiome(int mc, const uint64_t np[6], uint64_t *dat)
     const BiomeTree *bt;
     int idx;
 
-    if (mc >= MC_1_21_WD)
+    if (mc >= MC_1_21_50)
         bt = &btree21wd;
-    else if (mc >= MC_1_20_6)
+    else if (mc >= MC_1_20)
         bt = &btree20;
-    else if (mc >= MC_1_19_4)
+    else if (mc >= MC_1_19)
         bt = &btree19;
-    else if (mc >= MC_1_19_2)
-        bt = &btree192;
     else
         bt = &btree18;
 

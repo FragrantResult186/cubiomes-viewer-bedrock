@@ -169,6 +169,7 @@ MainWindow::MainWindow(QString sessionpath, QString resultspath, QWidget *parent
     addMapAction(D_VILLAGE);
     addMapAction(D_MINESHAFT);
     addMapAction(D_RAVINE);
+    addMapAction(D_LAVALAKE);
     addMapAction(D_DESERT);
     addMapAction(D_JUNGLE);
     addMapAction(D_HUT);
@@ -379,7 +380,6 @@ bool MainWindow::getSeed(WorldInfo *wi, bool applyrand)
             ok = false;
     }
 
-    wi->large = ui->checkLarge->isChecked();
     wi->y = ui->comboY->currentText().section(' ', 0, 0).toInt();
 
     return ok;
@@ -421,11 +421,9 @@ bool MainWindow::setSeed(WorldInfo wi, int dim)
 
     // temporarily disable UI to prevent recursive setSeed() updates
     ui->comboBoxMC->setEnabled(false);
-    ui->checkLarge->setEnabled(false);
     ui->seedEdit->setEnabled(false);
     ui->comboY->setEnabled(false);
 
-    ui->checkLarge->setChecked(wi.large);
     int i, n = ui->comboY->count();
     for (i = 0; i < n; i++)
         if (ui->comboY->itemText(i).section(' ', 0, 0).toInt() == wi.y)
@@ -439,7 +437,6 @@ bool MainWindow::setSeed(WorldInfo wi, int dim)
     getMapView()->setSeed(wi, dim, lopt);
 
     ui->comboBoxMC->setEnabled(true);
-    ui->checkLarge->setEnabled(wi.mc >= MC_1_3);
     ui->seedEdit->setEnabled(true);
     ui->comboY->setEnabled(true);
 
@@ -697,7 +694,7 @@ void MainWindow::setMCList(bool experimental)
     {
         if (!experimental && mc != wi.mc)
         {
-            if (mc <= MC_1_0 || mc == MC_1_16_1 || mc == MC_1_19_2 || mc == MC_1_21_1 || mc == MC_1_21_WD)
+            if (mc <= MC_1_0)
                 continue;
         }
         mclist.append(mc2str(mc));
@@ -791,11 +788,6 @@ void MainWindow::on_comboBoxMC_currentIndexChanged(int)
 void MainWindow::on_seedEdit_editingFinished()
 {
     if (ui->seedEdit->isEnabled())
-        updateMapSeed();
-}
-void MainWindow::on_checkLarge_toggled()
-{
-    if (ui->checkLarge->isEnabled())
         updateMapSeed();
 }
 void MainWindow::on_comboY_currentIndexChanged(int)
