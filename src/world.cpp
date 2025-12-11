@@ -197,10 +197,12 @@ void getStructs(std::vector<VarPos> *out, const StructureConfig sconf,
     // TODO: move generator to arguments?
     //       isViableStructurePos would have to be const (due to threading)
     Generator g;
+    SurfaceNoise sn;
     if (!nogen)
     {
         setupGenerator(&g, wi.mc, wi.large);
         applySeed(&g, dim, wi.seed);
+        initSurfaceNoise(&sn, dim, wi.seed);
     }
 
     for (int i = si0; i <= si1; i++)
@@ -209,6 +211,8 @@ void getStructs(std::vector<VarPos> *out, const StructureConfig sconf,
         {
             Pos p;
             int ok = getStructurePos(sconf.structType, wi.mc, wi.seed, i, j, &p);
+            if (sconf.structType == End_Gateway)
+                ok = getEndGatewayPos(wi.seed, g.en, sn, i, j, &p);
             if (!ok)
                 continue;
 
@@ -227,8 +231,6 @@ void getStructs(std::vector<VarPos> *out, const StructureConfig sconf,
 
                 if (sconf.structType == End_City)
                 {
-                    SurfaceNoise sn;
-                    initSurfaceNoise(&sn, DIM_END, wi.seed);
                     int y = isViableEndCityTerrain(&g, &sn, p.x, p.z);
                     if (!y)
                         continue;

@@ -367,7 +367,7 @@ int genNetherScaled(const NetherNoise *nn, int *out, Range r, int mc, uint64_t s
 void setEndSeed(EndNoise *en, int mc, uint64_t seed)
 {
     setSeed(seed);
-    skipNextN(17292);
+    skipNextN(10360);// thank you so much to megasys!
     perlinInit(&en->perlin);
     en->mc = mc;
 }

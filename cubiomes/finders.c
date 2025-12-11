@@ -17,14 +17,6 @@
 //==============================================================================
 
 
-void setAttemptSeed(uint64_t *s, int cx, int cz)
-{
-    *s ^= (uint64_t)(cx >> 4) ^ ((uint64_t)(cz >> 4) << 4);
-    JsetSeed(s, *s);
-    Jnext(s, 31);
-}
-
-
 int getStructureConfig(int structureType, int mc, StructureConfig *sconf)
 {
     static const StructureConfig
@@ -36,7 +28,7 @@ int getStructureConfig(int structureType, int mc, StructureConfig *sconf)
     s_outpost               = {165745296, 80, 56, Outpost,          DIM_OVERWORLD, 0},
     s_village_117           = { 10387312, 27, 17, Village,          DIM_OVERWORLD, 0.2 },// abandoned
     s_village               = { 10387312, 34, 26, Village,          DIM_OVERWORLD, 0.02},// abandoned
-    s_Stronghold            = { 97858791,200,150, Stronghold,       DIM_OVERWORLD, 0.25},
+    s_stronghold            = { 97858791,200,150, Stronghold,       DIM_OVERWORLD, 0.25},
     s_ocean_ruin_117        = { 14357621, 12,  5, Ocean_Ruin,       DIM_OVERWORLD, 0},
     s_ocean_ruin            = { 14357621, 20, 12, Ocean_Ruin,       DIM_OVERWORLD, 0},
     s_shipwreck_117         = {165745295, 10,  5, Shipwreck,        DIM_OVERWORLD, 0},
@@ -50,17 +42,13 @@ int getStructureConfig(int structureType, int mc, StructureConfig *sconf)
     s_treasure              = { 16842397,  4,  2, Treasure,         DIM_OVERWORLD, 0},
     s_mineshaft             = {        0,  1,  1, Mineshaft,        DIM_OVERWORLD, 0},
     // nether structures
-    s_ruined_portal_n       = { 40552231, 40, 25, Ruined_Portal,    DIM_NETHER, 0},
+    s_ruined_portal_n       = { 40552231, 25, 15, Ruined_Portal_N,  DIM_NETHER, 0},
     s_fortress_114          = {        0, 16,  8, Fortress,         DIM_NETHER, 0},
     s_fortress              = { 30084232, 30, 26, Fortress,         DIM_NETHER, 0},
     s_bastion               = { 30084232, 30, 26, Bastion,          DIM_NETHER, 0},
     // end structures
     s_end_city              = { 10387313, 20,  9, End_City,         DIM_END, 0},
-    // for the scattered return gateways
-    s_end_gateway_115       = {    30000,  1,  1, End_Gateway,      DIM_END, 700},
-    s_end_gateway_116       = {    40013,  1,  1, End_Gateway,      DIM_END, 700},
-    s_end_gateway_117       = {    40013,  1,  1, End_Gateway,      DIM_END, 700},
-    s_end_gateway           = {    40000,  1,  1, End_Gateway,      DIM_END, 700},
+    s_end_gateway           = {        0,  1,  1, End_Gateway,      DIM_END, 700},
     // decorators
     s_desert_well           = {-1160484816,  1,  1, Desert_Well,    DIM_OVERWORLD, 500},
     s_geode_117             = { 1974035328,  1,  1, Geode,          DIM_OVERWORLD, 53},
@@ -91,7 +79,7 @@ int getStructureConfig(int structureType, int mc, StructureConfig *sconf)
         *sconf = mc <= MC_1_17 ? s_village_117 : s_village;
         return mc >= MC_UNDEF;// 0.9.0
     case Stronghold:
-        *sconf = s_Stronghold;
+        *sconf = s_stronghold;
         return mc >= MC_UNDEF;// 0.9.0
     case Ocean_Ruin:
         *sconf = mc <= MC_1_17 ? s_ocean_ruin_117 : s_ocean_ruin;
@@ -251,6 +239,10 @@ int getStructurePos(int structureType, int mc, uint64_t seed, int regX, int regZ
         }
 
     case End_Gateway:
+    {
+        return 0;// dont use getStructurePos
+    }
+
     case Desert_Well:
     {
         pos->x = regX << 4;
@@ -296,6 +288,7 @@ int getStructurePos(int structureType, int mc, uint64_t seed, int regX, int regZ
     }
     return 0;
 }
+
 
 int getMineshafts(int mc, uint64_t seed, int cx0, int cz0, int cx1, int cz1,
                   Pos *out, int nout)
@@ -353,8 +346,6 @@ int getRavines(int mc, uint64_t seed, int cx0, int cz0, int cx1, int cz1,
 
     return n;
 }
-
-
 
 int getLavaLakes(int mc, uint64_t seed, int cx0, int cz0, int cx1, int cz1,
                   Pos *out, int nout)
@@ -1061,22 +1052,20 @@ int isViableFeatureBiome(int mc, int structureType, int biomeID)
         return biomeID == desert || biomeID == desert_hills;
 
     case Jungle_Pyramid:
-        return (biomeID == jungle || biomeID == jungle_hills ||
-                biomeID == bamboo_jungle || biomeID == bamboo_jungle_hills);
+        return biomeID == jungle;
 
     case Swamp_Hut:
         return biomeID == swamp;
 
     case Igloo:
-        if (mc <= MC_1_8) return 0;
         return biomeID == snowy_plains || biomeID == snowy_taiga || biomeID == snowy_slopes;
 
     case Ocean_Ruin:
-        if (mc <= MC_1_12) return 0;
+        if (mc <= MC_1_4) return 0;
         return isOceanic(biomeID);
 
     case Shipwreck:
-        if (mc <= MC_1_12) return 0;
+        if (mc <= MC_1_4) return 0;
         return isOceanic(biomeID) || biomeID == beach || biomeID == snowy_beach;
 
     case Ruined_Portal:
@@ -1108,7 +1097,6 @@ int isViableFeatureBiome(int mc, int structureType, int biomeID)
         return biomeID != deep_dark && isOverworld(mc, biomeID);
 
     case Treasure:
-        if (mc <= MC_1_12) return 0;
         return biomeID == beach || biomeID == snowy_beach || biomeID == stony_shore;
 
     case Mineshaft:
@@ -1126,11 +1114,10 @@ int isViableFeatureBiome(int mc, int structureType, int biomeID)
         return biomeID == desert;
 
     case Monument:
-        if (mc <= MC_1_7) return 0;
         return isDeepOcean(biomeID);
 
     case Outpost:
-        if (mc <= MC_1_13) return 0;
+        if (mc <= MC_1_11) return 0;
         if (mc >= MC_1_18) {
             switch (biomeID) {
             case desert:
@@ -1138,7 +1125,9 @@ int isViableFeatureBiome(int mc, int structureType, int biomeID)
             case savanna:
             case snowy_plains:
             case taiga:
+            case snowy_taiga:
             case meadow:
+            case sunflower_plains:
             case frozen_peaks:
             case jagged_peaks:
             case stony_peaks:
@@ -1150,20 +1139,19 @@ int isViableFeatureBiome(int mc, int structureType, int biomeID)
                 return 0;
             }
         }
-        // fall through
+        return biomeID == desert || biomeID == plains || biomeID == savanna || biomeID == taiga;
+
     case Village:
         if (biomeID == plains || biomeID == desert || biomeID == savanna)
             return 1;
-        if (mc >= MC_1_10 && biomeID == taiga)
-            return 1;
-        if (mc >= MC_1_14 && biomeID == snowy_plains)
+        if (mc >= MC_1_10 && (biomeID == taiga || biomeID == snowy_taiga || biomeID == snowy_plains || biomeID == sunflower_plains))
             return 1;
         if (mc >= MC_1_18 && biomeID == meadow)
             return 1;
         return 0;
     
     case Mansion:
-        if (mc <= MC_1_10) return 0;
+        if (mc <= MC_1_0) return 0;
         if (mc <= MC_1_21_50) return biomeID == dark_forest || biomeID == dark_forest_hills;
         return biomeID == dark_forest || biomeID == dark_forest_hills || biomeID == pale_garden;
 
@@ -1178,12 +1166,10 @@ int isViableFeatureBiome(int mc, int structureType, int biomeID)
                 biomeID == warped_forest || biomeID == crimson_forest);
 
     case End_City:
-        if (mc <= MC_1_8) return 0;
         return biomeID == end_midlands || biomeID == end_highlands;
 
     case End_Gateway:
-        if (mc <= MC_1_12) return 0;
-        return biomeID == end_highlands;
+        return 1;// gateways are always valid, but check height instead
 
     default:
         fprintf(stderr,
@@ -1370,10 +1356,10 @@ int isViableStructurePos(int structureType, Generator *g, int x, int z, uint32_t
         switch (structureType)
         {
         case End_City:
-            if (g->mc <= MC_1_8) return 0;
+            if (g->mc <= MC_1_0) return 0;
             break;
         case End_Gateway:
-            if (g->mc <= MC_1_12) return 0;
+            if (g->mc <= MC_1_0) return 0;
             break;
         default:
             return 0;
@@ -1597,7 +1583,10 @@ L_feature:
 
     case Ancient_City:
         if (g->mc <= MC_1_18) goto L_not_viable;
-        goto L_jigsaw;
+        id = getBiomeAt(g, 0, x>>2, -27>>2, z>>2);
+        if (id < 0 || !isViableFeatureBiome(g->mc, structureType, id))
+            goto L_not_viable;
+        goto L_viable;
 
     case Trial_Chambers:
         if (g->mc <= MC_1_20) goto L_not_viable;
@@ -1745,82 +1734,50 @@ int isViableEndCityTerrain(const Generator *g, const SurfaceNoise *sn,
     int chunkZ = blockZ >> 4;
     blockX = chunkX * 16 + 7;
     blockZ = chunkZ * 16 + 7;
-    int cellx = (blockX >> 3);
-    int cellz = (blockZ >> 3);
 
-    enum { y0 = 15, y1 = 18, yn = y1-y0+1 };
-    double ncol[3][3][yn];
+    int x0 = blockX, z0 = blockZ;
+    int x1, z1, x2, z2, x3, z3;
 
-    sampleNoiseColumnEnd(ncol[0][0], sn, en, cellx, cellz, y0, y1);
-    sampleNoiseColumnEnd(ncol[0][1], sn, en, cellx, cellz+1, y0, y1);
-    sampleNoiseColumnEnd(ncol[1][0], sn, en, cellx+1, cellz, y0, y1);
-    sampleNoiseColumnEnd(ncol[1][1], sn, en, cellx+1, cellz+1, y0, y1);
+    setSeed(chunkX + chunkZ * 10387313ULL);
 
-    int h00, h01, h10, h11;
-    h00 = getSurfaceHeight(ncol[0][0], ncol[0][1], ncol[1][0], ncol[1][1],
-            y0, y1, 4, (blockX & 7) / 8.0, (blockZ & 7) / 8.0);
-
-    uint64_t cs;
-    if (en->mc <= MC_1_18)
-        setSeed(chunkX + chunkZ * 10387313ULL);
-    else
-        cs = chunkGenerateRnd(g->seed, chunkX, chunkZ);
-
-    switch (JnextInt(&cs, 4))
+    switch (nextInt(4)) 
     {
     case 0: // (++) 0
-        sampleNoiseColumnEnd(ncol[0][2], sn, en, cellx+0, cellz+2, y0, y1);
-        sampleNoiseColumnEnd(ncol[1][2], sn, en, cellx+1, cellz+2, y0, y1);
-        sampleNoiseColumnEnd(ncol[2][0], sn, en, cellx+2, cellz+0, y0, y1);
-        sampleNoiseColumnEnd(ncol[2][1], sn, en, cellx+2, cellz+1, y0, y1);
-        sampleNoiseColumnEnd(ncol[2][2], sn, en, cellx+2, cellz+2, y0, y1);
-        h01 = getSurfaceHeight(ncol[0][1], ncol[0][2], ncol[1][1], ncol[1][2],
-                y0, y1, 4, ((blockX    ) & 7) / 8.0, ((blockZ + 5) & 7) / 8.0);
-        h10 = getSurfaceHeight(ncol[1][0], ncol[1][1], ncol[2][0], ncol[2][1],
-                y0, y1, 4, ((blockX + 5) & 7) / 8.0, ((blockZ    ) & 7) / 8.0);
-        h11 = getSurfaceHeight(ncol[1][1], ncol[1][2], ncol[2][1], ncol[2][2],
-                y0, y1, 4, ((blockX + 5) & 7) / 8.0, ((blockZ + 5) & 7) / 8.0);
+        x1 = blockX;     z1 = blockZ + 5;
+        x2 = blockX + 5; z2 = blockZ;
+        x3 = blockX + 5; z3 = blockZ + 5;
         break;
-
     case 1: // (-+) 90
-        sampleNoiseColumnEnd(ncol[0][2], sn, en, cellx+0, cellz+2, y0, y1);
-        sampleNoiseColumnEnd(ncol[1][2], sn, en, cellx+1, cellz+2, y0, y1);
-        h01 = getSurfaceHeight(ncol[0][1], ncol[0][2], ncol[1][1], ncol[1][2],
-                y0, y1, 4, ((blockX    ) & 7) / 8.0, ((blockZ + 5) & 7) / 8.0);
-        h10 = getSurfaceHeight(ncol[0][0], ncol[0][1], ncol[1][0], ncol[1][1],
-                y0, y1, 4, ((blockX - 5) & 7) / 8.0, ((blockZ    ) & 7) / 8.0);
-        h11 = getSurfaceHeight(ncol[0][1], ncol[0][2], ncol[1][1], ncol[1][2],
-                y0, y1, 4, ((blockX - 5) & 7) / 8.0, ((blockZ + 5) & 7) / 8.0);
+        x1 = blockX;     z1 = blockZ + 5;
+        x2 = blockX - 5; z2 = blockZ;
+        x3 = blockX - 5; z3 = blockZ + 5;
         break;
-
     case 2: // (--) 180
-        h01 = getSurfaceHeight(ncol[0][0], ncol[0][1], ncol[1][0], ncol[1][1],
-                y0, y1, 4, ((blockX    ) & 7) / 8.0, ((blockZ - 5) & 7) / 8.0);
-        h10 = getSurfaceHeight(ncol[0][0], ncol[0][1], ncol[1][0], ncol[1][1],
-                y0, y1, 4, ((blockX - 5) & 7) / 8.0, ((blockZ    ) & 7) / 8.0);
-        h11 = getSurfaceHeight(ncol[0][0], ncol[0][1], ncol[1][0], ncol[1][1],
-                y0, y1, 4, ((blockX - 5) & 7) / 8.0, ((blockZ - 5) & 7) / 8.0);
+        x1 = blockX;     z1 = blockZ - 5;
+        x2 = blockX - 5; z2 = blockZ;
+        x3 = blockX - 5; z3 = blockZ - 5;
         break;
-
     case 3: // (+-) 270
-        sampleNoiseColumnEnd(ncol[2][0], sn, en, cellx+2, cellz+0, y0, y1);
-        sampleNoiseColumnEnd(ncol[2][1], sn, en, cellx+2, cellz+1, y0, y1);
-        h01 = getSurfaceHeight(ncol[0][0], ncol[0][1], ncol[1][0], ncol[1][1],
-                y0, y1, 4, ((blockX    ) & 7) / 8.0, ((blockZ - 5) & 7) / 8.0);
-        h10 = getSurfaceHeight(ncol[1][0], ncol[1][1], ncol[2][0], ncol[2][1],
-                y0, y1, 4, ((blockX + 5) & 7) / 8.0, ((blockZ    ) & 7) / 8.0);
-        h11 = getSurfaceHeight(ncol[1][0], ncol[1][1], ncol[2][0], ncol[2][1],
-                y0, y1, 4, ((blockX + 5) & 7) / 8.0, ((blockZ - 5) & 7) / 8.0);
+        x1 = blockX;     z1 = blockZ - 5;
+        x2 = blockX + 5; z2 = blockZ;
+        x3 = blockX + 5; z3 = blockZ - 5;
         break;
-
     default:
-        return 0; // error
+        return 0;
     }
-    //printf("%d %d %d %d\n", h00, h01, h10, h11);
-    if (h01 < h00) h00 = h01;
-    if (h10 < h00) h00 = h10;
-    if (h11 < h00) h00 = h11;
-    return h00 >= 60 ? h00 : 0;
+    float h[4];
+    mapEndSurfaceHeight(&h[0], en, sn, x0, z0, 1, 1, 1, 0);
+    mapEndSurfaceHeight(&h[1], en, sn, x1, z1, 1, 1, 1, 0);
+    mapEndSurfaceHeight(&h[2], en, sn, x2, z2, 1, 1, 1, 0);
+    mapEndSurfaceHeight(&h[3], en, sn, x3, z3, 1, 1, 1, 0);
+    // printf("%f %d %d\n", h[0], x0, z0);
+    // printf("%f %d %d\n", h[1], x1, z1);
+    // printf("%f %d %d\n", h[2], x2, z2);
+    // printf("%f %d %d\n", h[3], x3, z3);
+    if (h[1] < h[0]) h[0] = h[1];
+    if (h[2] < h[0]) h[0] = h[2];
+    if (h[3] < h[0]) h[0] = h[3];
+    return (int)h[0]+1 >= 60 ? (int)h[0] : 0;
 }
 
 
@@ -1852,6 +1809,7 @@ static piecefunc_t genFatTower;
 int getVariant(StructureVariant *r, int structType, int mc, uint64_t seed,
         int x, int z, int biomeID)
 {
+    int t;
     char sx, sy, sz;
     StructureConfig sc;
     getStructureConfig(structType, mc, &sc);
@@ -1879,10 +1837,16 @@ int getVariant(StructureVariant *r, int structType, int mc, uint64_t seed,
         switch (biomeID)
         {
         case meadow:
+        case sunflower_plains:
             r->biome = plains;
             // fallthrough
         case plains:
-            UNREACHABLE();
+            t = nextInt(4);
+            if      (t < 1) { r->start = 0; sx =  9; sy = 4; sz =  9; } // plains_fountain_01
+            else if (t < 2) { r->start = 1; sx = 10; sy = 7; sz = 10; } // plains_meeting_point_1
+            else if (t < 3) { r->start = 2; sx =  8; sy = 5; sz = 15; } // plains_meeting_point_2
+            else if (t < 4) { r->start = 3; sx = 11; sy = 9; sz = 11; } // plains_meeting_point_3
+            else  UNREACHABLE();
             break;
         case desert:
             UNREACHABLE();
@@ -2771,35 +2735,169 @@ uint64_t getHouseList(int *out, uint64_t seed, int chunkX, int chunkZ)
     return rng;
 }
 
+//==============================================================================
+// Chorus Plant Generator (Pre-RNG consumption for Bedrock End Gateway)
+//==============================================================================
+
+typedef struct {
+    Pos3 blocks[1024];
+    int count;
+} Blocks;
+
+static
+void setBlock(Blocks *m, int x, int y, int z) {
+    for (int i = 0; i < m->count; i++) {
+        if (m->blocks[i].x == x && m->blocks[i].y == y && m->blocks[i].z == z)
+            return;
+    }
+    m->blocks[m->count++] = (Pos3){x, y, z};
+}
+
+static
+int isEmptyBlock(Blocks *blocks, int x, int y, int z) {
+    for (int i = 0; i < blocks->count; i++) {
+        if (blocks->blocks[i].x == x && blocks->blocks[i].y == y && blocks->blocks[i].z == z)
+            return 0;
+    }
+    return 1;
+}
+
+static
+Pos3 relative(Pos3 pos, int direction)
+{
+    int dx[4] = {0, 1, 0, -1};
+    int dz[4] = {-1, 0, 1, 0};
+    Pos3 p = {pos.x + dx[direction], pos.y, pos.z + dz[direction]};
+    return p;
+}
+
+static
+int allNeighborsEmpty(Blocks *blocks, Pos3 b, int direction)
+{
+    for (int i = 0; i < 4; i++)
+    {
+        Pos3 p = relative(b, i);
+        if (i != direction && !isEmptyBlock(blocks, p.x, p.y, p.z))
+            return 0;
+    }
+    return 1;
+}
+
+static
+void growTreeRecursive(Blocks *blocks, Pos3 pos1, Pos3 pos2, int depth)
+{
+    int opposite[4] = {2, 3, 0, 1};
+    int f = nextInt(4) + 1;
+    if (depth == 0)
+        f++;
+    for (int g = 0; g < f; g++)
+    {
+        Pos3 h = {pos1.x, pos1.y + (g + 1), pos1.z};
+        if (!allNeighborsEmpty(blocks, h, -1))
+            return;
+        setBlock(blocks, h.x, h.y, h.z);
+        setBlock(blocks, h.x, h.y - 1, h.z);
+    }
+    int br = 0;
+    if (depth < 4)
+    {
+        int j = nextInt(4);
+        if (depth == 0)
+            j++;
+        for (int k = 0; k < j; k++)
+        {
+            int direction = nextInt(4);
+            Pos3 v = {pos1.x, pos1.y + f, pos1.z};
+            Pos3 m = relative(v, direction);
+            if (abs(m.x - pos2.x) < 8 &&
+                abs(m.z - pos2.z) < 8 &&
+                isEmptyBlock(blocks, m.x, m.y, m.z) &&
+                isEmptyBlock(blocks, m.x, m.y - 1, m.z) &&
+                allNeighborsEmpty(blocks, m, opposite[direction]))
+            {
+                br = 1;
+                setBlock(blocks, m.x, m.y, m.z);
+                Pos3 n = relative(m, opposite[direction]);
+                setBlock(blocks, n.x, n.y, n.z);
+                growTreeRecursive(blocks, m, pos2, depth + 1);
+            }
+        }
+    }
+    if (!br)
+        setBlock(blocks, pos1.x, pos1.y + 1, pos1.z);
+}
+
+static
+void generatePlant(Blocks *blocks, Pos3 pos)
+{
+    setBlock(blocks, pos.x, pos.y, pos.z);
+    growTreeRecursive(blocks, pos, pos, 0);
+}
+
+int getEndGatewayPos(uint64_t seed, EndNoise en, SurfaceNoise sn, int chunkX, int chunkZ, Pos *pos)
+{
+    if (chunkX*chunkX + chunkZ*chunkZ < 64*64)
+        return 0;
+    int id;
+    mapEndBiome(&en, &id, chunkX, chunkZ, 1, 1);
+    if (id != end_highlands) 
+        return 0;
+    Blocks blocks = {0};
+    setPopulationSeed(seed, chunkX, chunkZ);
+    if (en.mc >= MC_1_18)
+        skipNextN(1);
+    // need to skip chorus plant rng
+    int i = nextInt(5);// plant count
+    for (int j = 0; j < i; j++)
+    {
+        int bx = chunkX*16 + nextInt(16)+8;
+        int bz = chunkZ*16 + nextInt(16)+8;
+        float by;
+        mapEndSurfaceHeight(&by, &en, &sn, bx, bz, 1, 1, 1, 0);
+        Pos3 p = {bx, (int)by + 1, bz};
+        generatePlant(&blocks, p);
+    }
+    // end gateway generation
+    if (nextInt(700) != 0) return 0;
+    int bx = chunkX*16 + nextInt(16)+8;
+    int bz = chunkZ*16 + nextInt(16)+8;
+    float by;
+    mapEndSurfaceHeight(&by, &en, &sn, bx, bz, 1, 1, 1, 0);
+    if ((int)by <= 0) 
+        return 0;// blockAbove->isAir() && blockBelow->isEndStone()
+    pos->x = bx;
+    pos->z = bz;
+    //y = by + nextInt(7) + 3;
+    return 1;
+}
 
 void getFixedEndGateways(int mc, uint64_t seed, Pos src[20])
 {
     (void) mc;
     static const Pos fixed[20] = {
-        { 96,  0}, { 91, 29}, { 77, 56}, { 56, 77}, { 29, 91},
-        { -1, 96}, {-30, 91}, {-57, 77}, {-78, 56}, {-92, 29},
-        {-96, -1}, {-92,-30}, {-78,-57}, {-57,-78}, {-30,-92},
-        {  0,-96}, { 29,-92}, { 56,-78}, { 77,-57}, { 91,-30},
+       { 96,  0}, { 91, 29}, { 77, 56}, { 56, 77}, { 29, 91},
+       { -1, 96}, {-30, 91}, {-57, 77}, {-78, 56}, {-92, 29},
+       {-96, -1}, {-92,-30}, {-78,-57}, {-57,-78}, {-30,-92},
+       {  0,-96}, { 29,-92}, { 56,-78}, { 77,-57}, { 91,-30},
     };
 
     uint8_t order[] = {
-        19, 18, 17, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0
+        0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19
     };
 
     int i;
-    uint64_t rng = 0;
     setSeed(seed);
 
-    for (i = 0; i < 20; i++)
+    for (i = 1; i < 20; i++)
     {
-        uint8_t j = 19 - JnextInt(&rng, 20-i);
+        uint8_t j = nextInt(i+1);
         uint8_t tmp = order[i];
         order[i] = order[j];
         order[j] = tmp;
     }
 
-    for (i = 0; i < 20; i++)
-        src[i] = fixed[ order[i] ];
+    for (i = 0; i < 20; i++) 
+        src[i] = fixed[ order[19 - i] ];
 }
 
 Pos getLinkedGatewayChunk(const EndNoise *en, const SurfaceNoise *sn, uint64_t seed,

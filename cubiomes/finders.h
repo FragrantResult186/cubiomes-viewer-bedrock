@@ -458,6 +458,9 @@ static void moveBelowSeaLevel(Piece *list, int count, int seaLevel, int minWorld
 static void moveInsideHeights(Piece *list, int count, int minY, int maxY);
 static void offsetPiecesVertically(Piece *list, int count, int dy);
 
+
+int getEndGatewayPos(uint64_t seed, EndNoise en, SurfaceNoise sn, int chunkX, int chunkZ, Pos *pos);
+
 /* Find the 20 fixed inner positions where End Gateways generate upon defeating
  * the Dragon. The positions are written to 'src' in generation order.
  */

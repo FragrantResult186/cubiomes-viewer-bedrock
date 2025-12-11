@@ -505,8 +505,8 @@ void SearchMaster::preSearch()
             seed = sstart;
             if (seed < smin)
                 seed = smin;
-            scnt = 0x10000 * slist.size();
-            uint64_t high = (seed >> 32) & 0xffff;
+            scnt = 0x100000000ULL * slist.size();
+            uint64_t high = (seed >> 32) & MASK32;
             for (idx = 0; idx < slist.size(); idx++)
                 if (slist[idx] >= (seed & MASK32))
                     break;
@@ -525,9 +525,9 @@ void SearchMaster::preSearch()
             for (idxmax = 0; idxmax < slist.size(); idxmax++)
                 if (slist[idxmax] >= (smax & MASK32))
                     break;
-            high = (high - (smin >> 32)) & 0xffff;
+            high = (high - (smin >> 32)) & MASK32;
             prog = high * slist.size() + idx - idxmin;
-            high = ((smax >> 32) - (smin >> 32)) & 0xffff;
+            high = ((smax >> 32) - (smin >> 32)) & MASK32;
             scnt = high * slist.size() + idxmax - idxmin;
         }
         else
@@ -546,7 +546,7 @@ void SearchMaster::preSearch()
     {
         if (!slist.empty())
         {
-            scnt = 0x10000 * slist.size();
+            scnt = 0x100000000ULL * slist.size();
             for (idx = 0; idx < slist.size(); idx++)
                 if (slist[idx] >= (sstart & MASK32))
                     break;
@@ -555,15 +555,15 @@ void SearchMaster::preSearch()
             else
             {
                 seed = (sstart & ~MASK32) | slist[idx];
-                prog = 0x10000 * idx + (seed >> 32);
+                prog = (0x100000000ULL * idx) + (seed >> 32);
             }
-            smax = slist.back() | (0xffffULL << 32);
+            smax = slist.back() | (MASK32 << 32);
         }
         else
         {
             scnt = smax = ~(uint64_t)0;
             seed = sstart;
-            prog = (seed << 16) | (seed >> 32);
+            prog = (seed << 32) | (seed >> 32);
         }
     }
 }
@@ -824,7 +824,7 @@ bool SearchMaster::requestItem(SearchWorker *item)
     {
         if (!slist.empty())
         {
-            uint64_t high = (seed >> 32) & 0xffff;
+            uint64_t high = (seed >> 32) & MASK32;
             idx += itemsize;
             high += idx / slist.size();
             idx %= slist.size();
@@ -848,9 +848,9 @@ bool SearchMaster::requestItem(SearchWorker *item)
     {
         if (!slist.empty())
         {
-            uint64_t high = (seed >> 32) & 0xffff;
+            uint64_t high = (seed >> 32) & MASK32;
             high += itemsize;
-            if (high >= 0x10000)
+            if (high >= 0x100000000ULL)
             {
                 high = 0;
                 idx++;
@@ -863,12 +863,12 @@ bool SearchMaster::requestItem(SearchWorker *item)
         else
         {
             Pos origin = {0,0};
-            uint64_t high = (seed >> 32) & 0xffff;
+            uint64_t high = (seed >> 32) & MASK32;
             uint64_t low = seed & MASK32;
             high += itemsize;
-            if (high >= 0x10000)
+            if (high >= 0x100000000ULL)
             {
-                item->scnt -= 0x10000 - high;
+                item->scnt -= 0x100000000ULL - high;
                 high = 0;
                 low++;
 
@@ -882,7 +882,7 @@ bool SearchMaster::requestItem(SearchWorker *item)
                     }
                     // update progress for skipped block
                     seed = low;
-                    prog += 0x10000;
+                    prog += 0x100000000ULL;
                 }
                 if (low > MASK32)
                     isdone = true;
@@ -1010,7 +1010,7 @@ void SearchWorker::run()
         {
             if (slist)
             {   // seed = (high << 32) | slist[..]
-                uint64_t high = (sstart >> 32) & 0xffff;
+                uint64_t high = (sstart >> 32) & MASK32;
                 uint64_t lowidx = idx;
 
                 for (int i = 0; i < scnt; i++)
@@ -1027,7 +1027,7 @@ void SearchWorker::run()
                     if (++lowidx >= len)
                     {
                         lowidx = 0;
-                        if (++high >= 0x10000)
+                        if (++high >= 0x100000000ULL)
                         {   // done
                             break;
                         }
@@ -1064,7 +1064,7 @@ void SearchWorker::run()
                 continue;
             }
 
-            uint64_t high = (sstart >> 32) & 0xffff;
+            uint64_t high = (sstart >> 32) & MASK32;
             uint64_t low;
             if (slist)
                 low = slist[idx];
@@ -1088,7 +1088,7 @@ void SearchWorker::run()
                         emit result(seed);
                 }
 
-                if (++high >= 0x10000)
+                if (++high >= 0x100000000ULL)
                     break; // done
             }
         }

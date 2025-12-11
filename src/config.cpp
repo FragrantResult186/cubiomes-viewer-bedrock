@@ -322,6 +322,7 @@ void MapConfig::reset()
     opts[D_GEODE].scale = 16;
     opts[D_RAVINE].scale = 16;
     opts[D_LAVALAKE].scale = 16;
+    opts[D_STRONGHOLD].scale = 320;
     zoomEnabled = false;
 }
 

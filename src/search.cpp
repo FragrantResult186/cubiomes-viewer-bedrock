@@ -1623,6 +1623,8 @@ L_qm_any:
 
 
     case F_STRONGHOLD:
+        if (!getStructureConfig_override(Stronghold, env->mc, &sconf))
+            return COND_FAILED;
 
         // the position is rounded to the nearest chunk and then centered on (8,8)
         // for the pre-selection we will subtract this offset
@@ -1688,6 +1690,59 @@ L_qm_any:
             icnt = 0;
             xt = zt = 0;
             env->init4Dim(DIM_OVERWORLD);
+            // check static strongholds
+            rx1 = floordiv(x1 - 50*16, sconf.regionSize * 16);
+            rz1 = floordiv(z1 - 50*16, sconf.regionSize * 16);
+            rx2 = floordiv(x2 + 50*16, sconf.regionSize * 16);
+            rz2 = floordiv(z2 + 50*16, sconf.regionSize * 16);
+            
+            for (rz = rz1; rz <= rz2 && !*env->stop; rz++)
+            {
+                for (rx = rx1; rx <= rx2; rx++)
+                {
+                    Pos shpos;
+                    if (!getStaticStronghold(sconf, env->seed, rx, rz, &shpos))
+                        continue;
+                        
+                    bool inside;
+                    if (rmax)
+                    {
+                        int dx = shpos.x - at.x;
+                        int dz = shpos.z - at.z;
+                        int64_t rsq = dx*(int64_t)dx + dz*(int64_t)dz;
+                        inside = (rsq < rmax);
+                    }
+                    else
+                    {
+                        inside = (shpos.x >= x1 && shpos.x <= x2 &&
+                                  shpos.z >= z1 && shpos.z <= z2);
+                    }
+                    if (cond->skipref && shpos.x == at.x && shpos.z == at.z)
+                        inside = false;
+                    if (inside)
+                    {
+                        if (cond->count == 0)
+                        {   // exclude
+                            return COND_FAILED;
+                        }
+                        else if (imax)
+                        {
+                            cent[icnt] = shpos;
+                            icnt++;
+                            if (icnt >= *imax)
+                                return COND_OK;
+                        }
+                        else
+                        {
+                            xt += shpos.x;
+                            zt += shpos.z;
+                            icnt++;
+                        }
+                    }
+                }
+            }
+            // check village strongholds
+            memset(&sh, 0, sizeof(sh));
             while (nextVillageStronghold(&sh, &env->g) > 0)
             {
                 if (*env->stop)
