@@ -746,8 +746,7 @@ static inline ATTR(const)
 Pos getFeatureChunkInRegion(StructureConfig config, uint64_t seed, int regX, int regZ)
 {
     Pos pos;
-    seed = seed + regX*341873128712ULL + regZ*132897987541ULL + config.salt;
-    setSeed(seed);
+    setRegionSeed(seed, regX, regZ, config.salt);
     pos.x = nextInt(config.chunkRange);
     pos.z = nextInt(config.chunkRange);
     return pos;
@@ -767,8 +766,7 @@ static inline ATTR(const)
 Pos getLargeStructureChunkInRegion(StructureConfig config, uint64_t seed, int regX, int regZ)
 {
     Pos pos;
-    seed = seed + regX*341873128712ULL + regZ*132897987541ULL + config.salt;
-    setSeed(seed);
+    setRegionSeed(seed, regX, regZ, config.salt);
     pos.x = (nextInt(config.chunkRange) + nextInt(config.chunkRange)) / 2;
     pos.z = (nextInt(config.chunkRange) + nextInt(config.chunkRange)) / 2;
     return pos;
@@ -882,6 +880,27 @@ Pos chunkToRegion(int chunkX, int chunkZ, int regionSize)
     return p;
 }
 
+// village 1.0-1.10
+static inline int regionOffset(int coord, int regionSize) {
+    int offset = coord % regionSize;
+    return (offset < 0) ? offset + regionSize : offset;
+}
+
+static inline ATTR(const)
+int isVillageChunk(StructureConfig config, uint64_t seed, int chunkX, int chunkZ)
+{
+    int regionSize = 40;
+    int chunkRange = 28;//40 - 12
+    int regX = chunkX < 0 ? chunkX - regionSize + 1 : chunkX;
+    int regZ = chunkZ < 0 ? chunkZ - regionSize + 1 : chunkZ;
+    
+    setRegionSeed(seed, regX, regZ, config.salt);
+    int vchunkX = nextInt(chunkRange) + chunkX - regionOffset(chunkX, regionSize);
+    int vchunkZ = nextInt(chunkRange) + chunkZ - regionOffset(chunkZ, regionSize);
+
+    if (vchunkX == chunkX && vchunkZ == chunkZ) return 1;
+    return 0;
+}
 
 #ifdef __cplusplus
 }

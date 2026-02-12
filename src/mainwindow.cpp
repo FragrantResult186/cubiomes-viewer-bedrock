@@ -387,6 +387,25 @@ bool MainWindow::getSeed(WorldInfo *wi, bool applyrand)
 
 bool MainWindow::setSeed(WorldInfo wi, int dim)
 {
+    bool is64bit = wi.mc >= MC_1_18;
+    
+    if (!is64bit)
+    {
+        int32_t seed32 = (int32_t)wi.seed;
+        wi.seed = (uint64_t)(int64_t)seed32;
+        
+        if (wi.seed == 0 && ui->seedEdit->text().trimmed().length() > 0)
+        {
+            QString txt = ui->seedEdit->text();
+            int type = str2seed(txt, &wi.seed);
+            if (type == S_TEXT)
+            {
+                warn(this, tr("Text seeds are not supported in Minecraft 1.17 and earlier."));
+                return false;
+            }
+        }
+    }
+    
     if (dim == DIM_OVERWORLD)
         dimactions[0]->setChecked(true);
     if (dim == DIM_NETHER)
@@ -550,6 +569,11 @@ void MainWindow::loadSettings()
     WorldInfo wi;
     // NOTE: version can be wrong when the mc-enum changes, but the session file should correct it
     getSeed(&wi, false);
+    if (wi.mc < MC_1_18)
+    {
+        int32_t seed32 = (int32_t)wi.seed;
+        wi.seed = (uint64_t)(int64_t)seed32;
+    }
     wi.load(settings);
     int dim = settings.value("map/dim", getDim()).toInt();
 
@@ -783,12 +807,30 @@ void MainWindow::setProgressIndication(double value)
 void MainWindow::on_comboBoxMC_currentIndexChanged(int)
 {
     if (ui->comboBoxMC->isEnabled() && ui->comboBoxMC->count())
+    {
+        updateSeedInputMode();
         updateMapSeed();
+    }
 }
 void MainWindow::on_seedEdit_editingFinished()
 {
-    if (ui->seedEdit->isEnabled())
-        updateMapSeed();
+    if (!ui->seedEdit->isEnabled())
+        return;
+    bool is64bit = is64bitSeedVersion();
+    QString text = ui->seedEdit->text();
+    uint64_t seed;
+    int seedType = str2seed(text, &seed);
+    // -1.17
+    if (!is64bit)
+    {
+        int64_t seed64 = (int64_t)seed;
+        if (seed64 < INT32_MIN || seed64 > INT32_MAX)
+        {
+            int32_t seed32 = (int32_t)seed;
+            ui->seedEdit->setText(QString::asprintf("%" PRId32, seed32));
+        }
+    }
+    updateMapSeed();
 }
 void MainWindow::on_comboY_currentIndexChanged(int)
 {
@@ -1320,4 +1362,41 @@ void MainWindow::onDockFloating(bool floating)
         setDockable(false);
         ui->actionDock->setText(tr("Undock map"));
     }
+}
+
+bool MainWindow::is64bitSeedVersion() const
+{
+    WorldInfo wi;
+    if (ui && ui->comboBoxMC->count())
+    {
+        const std::string& mcs = ui->comboBoxMC->currentText().toStdString();
+        wi.mc = str2mc(mcs.c_str());
+        return wi.mc >= MC_1_18;
+    }
+    return false;
+}
+
+void MainWindow::updateSeedInputMode()
+{
+    if (!ui || !ui->seedEdit)
+        return;
+    bool is64bit = is64bitSeedVersion();
+    QString currentText = ui->seedEdit->text();
+    uint64_t currentSeed;
+    int seedType = str2seed(currentText, &currentSeed);
+    if (is64bit)
+    {
+        ui->seedEdit->setToolTip(tr("64-bit seed (text or number)"));
+    }
+    else
+    {
+        ui->seedEdit->setToolTip(tr("32-bit seed (numeric only, -2^31 to 2^31-1)"));
+        if (seedType == S_NUMERIC || seedType == S_RANDOM)
+        {
+            int32_t seed32 = (int32_t)currentSeed;
+            if (currentSeed != (uint64_t)(int64_t)seed32)
+                ui->seedEdit->setText(QString::asprintf("%" PRId32, seed32));
+        }
+    }
+    on_seedEdit_textChanged(ui->seedEdit->text());
 }

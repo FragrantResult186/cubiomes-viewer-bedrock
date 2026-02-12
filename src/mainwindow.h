@@ -125,6 +125,8 @@ private slots:
     void onBiomeColorChange();
     void onStyleChanged(int style);
     void onDockFloating(bool floating);
+    void updateSeedInputMode();
+    bool is64bitSeedVersion() const;
 
 public:
     Ui::MainWindow *ui;

@@ -872,7 +872,7 @@ int mapBiome(const Layer * l, int * out, int x, int z, int w, int h)
             int hasHighBit = (id & 0xf00);
             id &= ~0xf00;
 
-            if (mc <= MC_1_6)
+            if (mc < MC_1_0)
             {
                 if (id == ocean || id == mushroom_fields)
                 {
@@ -940,7 +940,7 @@ int mapNoise(const Layer * l, int * out, int x, int z, int w, int h)
     uint64_t ss = l->startSeed;
     uint64_t cs;
 
-    int mod = (l->mc <= MC_1_6) ? 2 : 299999;
+    int mod = (l->mc < MC_1_0) ? 2 : 299999;
 
     for (j = 0; j < h; j++)
     {
@@ -1114,7 +1114,7 @@ int mapHills(const Layer * l, int * out, int x, int z, int w, int h)
             int64_t idx = i + j*w;
             int bn = -1;
 
-            if (mc >= MC_1_7)
+            if (mc >= MC_1_0)
                 bn = (b11 - 2) % 29;
 
             if (bn == 1 && b11 >= 2 && !isShallowOcean(a11))
@@ -1156,7 +1156,7 @@ int mapHills(const Layer * l, int * out, int x, int z, int w, int h)
                         hillID = snowy_taiga_hills;
                         break;
                     case plains:
-                        if (mc <= MC_1_6) {
+                        if (mc < MC_1_0) {
                             hillID = forest;
                             break;
                         }
@@ -1173,11 +1173,11 @@ int mapHills(const Layer * l, int * out, int x, int z, int w, int h)
                         hillID = bamboo_jungle_hills;
                         break;
                     case ocean:
-                        if (mc >= MC_1_7)
+                        if (mc >= MC_1_0)
                             hillID = deep_ocean;
                         break;
                     case mountains:
-                        if (mc >= MC_1_7)
+                        if (mc >= MC_1_0)
                             hillID = wooded_mountains;
                         break;
                     case savanna:
@@ -1218,7 +1218,7 @@ int mapHills(const Layer * l, int * out, int x, int z, int w, int h)
                         if (areSimilar(mc, a01, a11)) equals++;
                         if (areSimilar(mc, a12, a11)) equals++;
 
-                        if (equals >= 3 + (mc <= MC_1_6))
+                        if (equals >= 3 + (mc < MC_1_0))
                             out[idx] = hillID;
                         else
                             out[idx] = a11;
@@ -1273,7 +1273,7 @@ int mapRiver(const Layer * l, int * out, int x, int z, int w, int h)
             int v10 = vz0[i+1];
             int v12 = vz2[i+1];
 
-            if (mc >= MC_1_7)
+            if (mc >= MC_1_0)
             {
                 v01 = reduceID(v01);
                 v11 = reduceID(v11);
@@ -1455,7 +1455,7 @@ int mapShore(const Layer * l, int * out, int x, int z, int w, int h)
                 continue;
             }
 
-            if (mc <= MC_1_6)
+            if (mc < MC_1_0)
             {
                 if (v11 == mountains)
                 {
@@ -1581,7 +1581,7 @@ int mapRiverMix(const Layer * l, int * out, int x, int z, int w, int h)
     {
         int v = out[idx];
 
-        if (buf[idx] == river && v != ocean && (mc <= MC_1_6 || !isOceanic(v)))
+        if (buf[idx] == river && v != ocean && (mc < MC_1_0 || !isOceanic(v)))
         {
             if (v == snowy_tundra)
                 v = frozen_river;
