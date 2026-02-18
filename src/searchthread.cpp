@@ -240,7 +240,7 @@ bool SearchMaster::set(QWidget *widget, const Session& s)
                 layerId = L_OCEAN_TEMP_256;
                 scale = 256;
             }
-            if (layerId == 0 && s.wi.mc <= MC_1_17)
+            if (layerId == 0 && s.wi.mc < MC_1_18)
             {
                 Generator tmp;
                 setupGenerator(&tmp, s.wi.mc, 0);

@@ -66,7 +66,7 @@ void setupGenerator(Generator *g, int mc, uint32_t flags)
     g->seed = 0;
     g->sha = 0;
 
-    if (mc >= MC_B1_8 && mc <= MC_1_17)
+    if (mc >= MC_B1_8 && mc < MC_1_18)
     {
         setupLayerStack(&g->ls, mc, flags & LARGE_BIOMES);
         g->entry = NULL;
@@ -108,7 +108,7 @@ void applySeed(Generator *g, int dim, uint64_t seed)
             setBetaBiomeSeed(&g->bnb, seed);
             // initSurfaceNoiseBeta(&g->snb, g->seed);
         }
-        else if (g->mc <= MC_1_17)
+        else if (g->mc < MC_1_18)
         {
             setLayerSeed(g->entry ? g->entry : g->ls.entry_1, seed);
         }
@@ -127,7 +127,7 @@ void applySeed(Generator *g, int dim, uint64_t seed)
     }
     if (g->mc >= MC_1_14)
     {
-        if (g->mc <= MC_1_17 && dim == DIM_OVERWORLD && !g->entry)
+        if (g->mc < MC_1_18 && dim == DIM_OVERWORLD && !g->entry)
             g->sha = g->ls.entry_1->startSalt;
         else
             g->sha = getVoronoiSHA(seed);
@@ -146,7 +146,7 @@ size_t getMinCacheSize(const Generator *g, int scale, int sx, int sy, int sz)
         int slen = ((smin >> (2 >> cellwidth)) + 1) * 2 + 1;
         len += slen * sizeof(SeaLevelColumnNoiseBeta);
     }
-    else if (g->mc >= MC_B1_8 && g->mc <= MC_1_17 && g->dim == DIM_OVERWORLD)
+    else if (g->mc >= MC_B1_8 && g->mc < MC_1_18 && g->dim == DIM_OVERWORLD)
     { // recursively check the layer stack for the max buffer
         const Layer *entry = getLayerForScale(g, scale);
         if (!entry)
@@ -183,7 +183,7 @@ int genBiomes(const Generator *g, int *cache, Range r)
 
     if (g->dim == DIM_OVERWORLD)
     {
-        if (g->mc >= MC_B1_8 && g->mc <= MC_1_17)
+        if (g->mc >= MC_B1_8 && g->mc < MC_1_18)
         {
             const Layer *entry = getLayerForScale(g, r.scale);
             if (!entry)
@@ -251,7 +251,7 @@ int getBiomeAt(const Generator *g, int scale, int x, int y, int z)
 
 const Layer *getLayerForScale(const Generator *g, int scale)
 {
-    if (g->mc > MC_1_17)
+    if (g->mc >= MC_1_18)
         return NULL;
     switch (scale)
     {

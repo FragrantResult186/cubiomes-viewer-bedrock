@@ -260,8 +260,11 @@ int getMineshafts(int mc, uint64_t seed, int chunkX, int chunkZ,
 int getRavines(int mc, uint64_t seed, int chunkX, int chunkZ,
         int chunkW, int chunkH, Pos *out, int nout);
 
-int getLavaLakes(int mc, uint64_t seed, int chunkX, int chunkZ,
+int getGeodes(int mc, uint64_t seed, int chunkX, int chunkZ,
         int chunkW, int chunkH, Pos *out, int nout);
+
+int getLavaLakes(int mc, uint64_t seed, int chunkX, int chunkZ,
+        int chunkW, int chunkH, Pos *out, int nout, int isDesert);
 
 // not exacly a structure
 static inline ATTR(const)
@@ -471,7 +474,7 @@ void getFixedEndGateways(int mc, uint64_t seed, Pos src[20]);
  */
 Pos getLinkedGatewayChunk(const EndNoise *en, const SurfaceNoise *sn,
     uint64_t seed, Pos src, Pos *dst);
-Pos getLinkedGatewayPos(const EndNoise *en, const SurfaceNoise *sn,
+Pos3 getLinkedGatewayPos(const EndNoise *en, const SurfaceNoise *sn,
     uint64_t seed, Pos src);
 
 

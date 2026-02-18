@@ -206,7 +206,7 @@ public:
     QAtomicPointer<Pos> spawn;
     QAtomicPointer<PosElement> strongholds;
     QAtomicPointer<QVector<QuadInfo>> qsinfo;
-    QVector<Pos> endgates;
+    QVector<Pos3> endgates;
     // isdel is a flag for the worker thread to stop
     std::atomic_bool isdel;
 

@@ -1814,6 +1814,19 @@ QPushButton:hover {
              </property>
              <layout class="QGridLayout" name="gridLayoutPortal2">
               <item row="0" column="0">
+               <widget class="QCheckBox" name="checkUnderground">
+                <property name="tristate">
+                 <bool>true</bool>
+                </property>
+                <property name="toolTip">
+                 <string>Filter by underground/overground</string>
+                </property>
+                <property name="text">
+                 <string>Underground</string>
+                </property>
+               </widget>
+              </item>
+              <item row="1" column="0">
                <widget class="QCheckBox" name="checkStartPortal">
                 <property name="toolTip">
                  <string>Allow only structures that start with one of the selected pieces</string>
@@ -1823,7 +1836,7 @@ QPushButton:hover {
                 </property>
                </widget>
               </item>
-              <item row="1" column="0">
+              <item row="2" column="0">
                <widget class="QScrollArea" name="scrollPortalPieces">
                 <property name="widgetResizable">
                  <bool>true</bool>
@@ -1983,6 +1996,45 @@ QPushButton:hover {
               </item>
              </layout>
             </widget>
+           </item>
+          </layout>
+         </widget>
+         <widget class="QWidget" name="pageLinkedGateway">
+          <layout class="QVBoxLayout">
+           <item>
+            <widget class="QLabel">
+             <property name="text">
+              <string>Gateway index 1-20</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <layout class="QGridLayout" name="gridLayoutGateway">
+            </layout>
+           </item>
+           <item>
+            <layout class="QHBoxLayout">
+             <item>
+              <widget class="QPushButton" name="pushGatewayAll">
+               <property name="text"><string>All</string></property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QPushButton" name="pushGatewayNone">
+               <property name="text"><string>None</string></property>
+              </widget>
+             </item>
+             <item>
+              <spacer>
+               <property name="orientation"><enum>Qt::Horizontal</enum></property>
+              </spacer>
+             </item>
+            </layout>
+           </item>
+           <item>
+            <spacer>
+             <property name="orientation"><enum>Qt::Vertical</enum></property>
+            </spacer>
            </item>
           </layout>
          </widget>

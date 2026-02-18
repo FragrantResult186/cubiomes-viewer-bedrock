@@ -48,31 +48,32 @@ const char* mc2str(int mc)
 {
     switch (mc)
     {
-    case MC_B1_7:   return "Beta 1.7"; break;
-    case MC_B1_8:   return "Beta 1.8"; break;
-    case MC_1_0:    return "1.0"; break;
-    case MC_1_1:    return "1.1"; break;
-    case MC_1_2:    return "1.2"; break;
-    case MC_1_4:    return "1.4"; break;
-    case MC_1_5:    return "1.5"; break;
-    case MC_1_6:    return "1.6"; break;
-    case MC_1_7:    return "1.7"; break;
-    case MC_1_8:    return "1.8"; break;
-    case MC_1_9:    return "1.9"; break;
-    case MC_1_10:   return "1.10"; break;
-    case MC_1_11:   return "1.11"; break;
-    case MC_1_12:   return "1.12"; break;
-    case MC_1_13:   return "1.13"; break;
-    case MC_1_14:   return "1.14"; break;
-    case MC_1_16:   return "1.16"; break;
-    case MC_1_17:   return "1.17"; break;
-    case MC_1_18:   return "1.18"; break;
-    case MC_1_19:   return "1.19"; break;
-    case MC_1_20:   return "1.20"; break;
-    case MC_1_21:   return "1.21"; break;
+    case MC_B1_7:    return "Beta 1.7"; break;
+    case MC_B1_8:    return "Beta 1.8"; break;
+    case MC_1_0:     return "1.0"; break;
+    case MC_1_1:     return "1.1"; break;
+    case MC_1_2:     return "1.2"; break;
+    case MC_1_4:     return "1.4"; break;
+    case MC_1_5:     return "1.5"; break;
+    case MC_1_6:     return "1.6"; break;
+    case MC_1_7:     return "1.7"; break;
+    case MC_1_8:     return "1.8"; break;
+    case MC_1_9:     return "1.9"; break;
+    case MC_1_10:    return "1.10"; break;
+    case MC_1_11:    return "1.11"; break;
+    case MC_1_12:    return "1.12"; break;
+    case MC_1_13:    return "1.13"; break;
+    case MC_1_14:    return "1.14"; break;
+    case MC_1_16:    return "1.16"; break;
+    case MC_1_17:    return "1.17"; break;
+    case MC_1_17_30: return "1.17.30"; break;
+    case MC_1_18:    return "1.18"; break;
+    case MC_1_19:    return "1.19"; break;
+    case MC_1_20:    return "1.20"; break;
+    case MC_1_21:    return "1.21"; break;
     case MC_1_21_50: return "1.21.50"; break;
     case MC_1_21_60: return "1.21.60"; break;
-    default:        return "?";
+    default:         return "?";
     }
 }
 
@@ -90,6 +91,7 @@ int str2mc(const char *s)
     if (!strcmp(s, "1.18.0"))   return MC_1_18_0;
     if (!strcmp(s, "1.17"))     return MC_1_17;
     if (!strcmp(s, "1.17.0"))   return MC_1_17_0;
+    if (!strcmp(s, "1.17.30"))  return MC_1_17_30;
     if (!strcmp(s, "1.16"))     return MC_1_16;
     if (!strcmp(s, "1.16.0"))   return MC_1_16_0;
     if (!strcmp(s, "1.14"))     return MC_1_14;

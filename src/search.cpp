@@ -166,7 +166,14 @@ bool Condition::versionUpgrade()
             z2 = (z2+1) * mult - 1;
         }
     }
-
+    {
+        int old_gwindex;
+        memcpy(&old_gwindex, &gwmask, sizeof(int));
+        if (old_gwindex >= 0 && old_gwindex < 20)
+            gwmask = (1u << old_gwindex);
+        else
+            gwmask = 0; //allow all
+    }
     version = VER_CURRENT;
     return true;
 }
@@ -261,6 +268,7 @@ SearchThreadEnv::SearchThreadEnv()
 {
     memset(&g, 0, sizeof(g));
     memset(&sn, 0, sizeof(sn));
+    memset(&en, 0, sizeof(en));
 }
 
 SearchThreadEnv::~SearchThreadEnv()
@@ -345,6 +353,15 @@ void SearchThreadEnv::prepareSurfaceNoise(int dim)
     {
         initSurfaceNoise(&sn, dim, seed);
         surfdim = dim;
+    }
+}
+
+void SearchThreadEnv::prepareEndNoise()
+{
+    if (endnoiseseed != seed)
+    {
+        setEndSeed(&en, en.mc, seed);
+        endnoiseseed = seed;
     }
 }
 
@@ -811,6 +828,10 @@ static bool isVariantOk(const Condition *c, SearchThreadEnv *e, int stype, int v
         e->init4Dim(stype == Ruined_Portal ? DIM_OVERWORLD : DIM_NETHER);
         varbiome = getBiomeAt(&e->g, 4, (pos->x >> 2) + 2, 0, (pos->z >> 2) + 2);
         getVariant(&sv, stype, e->mc, e->seed, pos->x, pos->z, varbiome);
+        if (c->varflags & Condition::VAR_UNDERGROUND)
+        {
+            if (sv.underground != (!(c->varflags & Condition::VAR_NOT))) return false;
+        }
         if (!(c->varflags & Condition::VAR_WITH_START)) return true;
     }
     else if (stype == Igloo)
@@ -1256,7 +1277,6 @@ L_qm_any:
     case F_SHIPWRECK:
     case F_TREASURE:
     case F_WELL:
-    case F_LAVALAKE:
     case F_PORTAL:
     case F_PORTALN:
     case F_ANCIENT_CITY:
@@ -1591,6 +1611,192 @@ L_qm_any:
             }
         }
         return COND_FAILED;
+    
+    case F_GEODE:
+
+        rx1 = x1 >> 4;
+        rz1 = z1 >> 4;
+        rx2 = x2 >> 4;
+        rz2 = z2 >> 4;
+
+        if (imax && cond->count > 0)
+        {   // just check there are at least *inst (== cond->count) instances
+            *imax = icnt =
+                getGeodes(env->mc, env->seed, rx1, rz1, rx2, rz2, cent, *imax);
+            if (rmax)
+            {   // filter out the instances that are outside the radius
+                int j = 0;
+                for (int i = 0; i < icnt; i++)
+                {
+                    int dx = cent[i].x - at.x;
+                    int dz = cent[i].z - at.z;
+                    int64_t rsq = dx*(int64_t)dx + dz*(int64_t)dz;
+                    if (rsq < rmax)
+                        cent[j++] = cent[i];
+                }
+                *imax = icnt = j;
+            }
+            if (cond->skipref && icnt > 0)
+            {   // remove origin instance
+                for (int i = 0; i < icnt; i++)
+                {
+                    if (cent[i].x == at.x && cent[i].z == at.z)
+                    {
+                        cent[i] = cent[icnt-1];
+                        *imax = --icnt;
+                        break;
+                    }
+                }
+            }
+            if (icnt >= cond->count)
+                return COND_OK;
+        }
+        else
+        {   // we need the average position of all instances
+            icnt = getGeodes(env->mc, env->seed, rx1, rz1, rx2, rz2, &p[0], MAX_INSTANCES);
+            if (icnt < cond->count)
+                return COND_FAILED;
+            xt = zt = 0;
+            int j = 0;
+            for (int i = 0; i < icnt; i++)
+            {
+                if (rmax)
+                {   // skip instances outside the radius
+                    int dx = cent[i].x - at.x;
+                    int dz = cent[i].z - at.z;
+                    int64_t rsq = dx*(int64_t)dx + dz*(int64_t)dz;
+                    if (rsq >= rmax)
+                        continue;
+                }
+                if (cond->skipref && p[i].x == at.x && p[i].z == at.z)
+                    continue;
+                xt += p[i].x;
+                zt += p[i].z;
+                j++;
+            }
+            if (cond->count <= 0)
+            {
+                cent->x = (x1 + x2) >> 1;
+                cent->z = (z1 + z2) >> 1;
+                if (imax) *imax = 1;
+                if (j == 0)
+                    return COND_OK;
+            }
+            else if (j >= cond->count)
+            {
+                cent->x = xt / j;
+                cent->z = zt / j;
+                if (imax) *imax = 1;
+                return COND_OK;
+            }
+        }
+        return COND_FAILED;
+    
+    case F_LAVALAKE:
+        
+        rx1 = x1 >> 4;
+        rz1 = z1 >> 4;
+        rx2 = x2 >> 4;
+        rz2 = z2 >> 4;
+
+        if (imax && cond->count > 0)
+        {   // just check there are at least *inst (== cond->count) instances
+            int isDesert = 0;
+            if (env->mc < MC_1_18)
+            {
+               int biomeid = getBiomeAt(&env->g, 4, pc.x>>2, 317>>2, pc.z>>2);
+               isDesert = (biomeid == desert) || (biomeid == desert_hills);
+            }
+            *imax = icnt =
+                getLavaLakes(env->mc, env->seed, rx1, rz1, rx2, rz2, cent, *imax, isDesert);
+            if (cond->varflags)
+            {
+                if (!isVariantOk(cond, env, st, -1, &pc))
+                    return COND_FAILED;
+            }
+            if (rmax)
+            {   // filter out the instances that are outside the radius
+                int j = 0;
+                for (int i = 0; i < icnt; i++)
+                {
+                    int dx = cent[i].x - at.x;
+                    int dz = cent[i].z - at.z;
+                    int64_t rsq = dx*(int64_t)dx + dz*(int64_t)dz;
+                    if (rsq < rmax)
+                        cent[j++] = cent[i];
+                }
+                *imax = icnt = j;
+            }
+            if (cond->skipref && icnt > 0)
+            {   // remove origin instance
+                for (int i = 0; i < icnt; i++)
+                {
+                    if (cent[i].x == at.x && cent[i].z == at.z)
+                    {
+                        cent[i] = cent[icnt-1];
+                        *imax = --icnt;
+                        break;
+                    }
+                }
+            }
+            applySeed(&env->g, DIM_OVERWORLD, env->seed);
+            int id = isViableStructurePos(Lava_Lake, &env->g, pc.x, pc.z, 0);
+            if (!id)
+                return COND_FAILED;
+            if (icnt >= cond->count)
+                return COND_OK;
+        }
+        else
+        {
+            int isDesert = 0;
+            if (env->mc < MC_1_18)
+            {
+               int biomeid = getBiomeAt(&env->g, 4, pc.x>>2, 317>>2, pc.z>>2);
+               isDesert = (biomeid == desert) || (biomeid == desert_hills);
+            }
+            icnt = getLavaLakes(env->mc, env->seed, rx1, rz1, rx2, rz2, &p[0], MAX_INSTANCES, isDesert);
+            if (cond->varflags)
+            {
+                if (!isVariantOk(cond, env, st, -1, &pc))
+                    return COND_FAILED;
+            }
+            if (icnt < cond->count)
+                return COND_FAILED;
+            xt = zt = 0;
+            int j = 0;
+            for (int i = 0; i < icnt; i++)
+            {
+                if (rmax)
+                {
+                    int dx = cent[i].x - at.x;
+                    int dz = cent[i].z - at.z;
+                    int64_t rsq = dx*(int64_t)dx + dz*(int64_t)dz;
+                    if (rsq >= rmax)
+                        continue;
+                }
+                if (cond->skipref && p[i].x == at.x && p[i].z == at.z)
+                    continue;
+                xt += p[i].x;
+                zt += p[i].z;
+                j++;
+            }
+            if (cond->count <= 0)
+            {
+                cent->x = (x1 + x2) >> 1;
+                cent->z = (z1 + z2) >> 1;
+                if (imax) *imax = 1;
+                if (j == 0)
+                    return COND_OK;
+            }
+            else if (j >= cond->count)
+            {
+                cent->x = xt / j;
+                cent->z = zt / j;
+                if (imax) *imax = 1;
+                return COND_OK;
+            }
+        }
+        return COND_FAILED;
 
     case F_SPAWN:
 
@@ -1802,6 +2008,76 @@ L_qm_any:
         }
         return COND_FAILED;
 
+    case F_LINKED_GATEWAY:
+    {
+        if (env->mc < MC_1_0)
+            return COND_FAILED;
+
+        int lx1, lz1, lx2, lz2;
+        if (cond->rmax > 0)
+        {
+            int64_t rm = cond->rmax - 1;
+            lx1 = at.x - rm;
+            lz1 = at.z - rm;
+            lx2 = at.x + rm;
+            lz2 = at.z + rm;
+        }
+        else
+        {
+            lx1 = cond->x1 + at.x;
+            lz1 = cond->z1 + at.z;
+            lx2 = cond->x2 + at.x;
+            lz2 = cond->z2 + at.z;
+        }
+
+        if (env->searchpass != PASS_FULL_64)
+            return COND_MAYBE_POS_INVAL;
+
+        int idx = cond->gwindex;
+        if (idx < 0 || idx >= 20)
+            return COND_FAILED;
+
+        env->prepareEndNoise();
+        env->prepareSurfaceNoise(DIM_END);
+
+        Pos src[20];
+        getFixedEndGateways(env->mc, env->seed, src);
+
+        uint32_t mask = cond->gwmask;
+        if (mask == 0)
+            mask = (1u << 20) - 1; //allow all
+
+        for (int idx = 0; idx < 20; idx++)
+        {
+            if (!(mask & (1u << idx)))
+                continue;
+
+            Pos3 dst = getLinkedGatewayPos(&env->en, &env->sn, env->seed, src[idx]);
+
+            bool inRange;
+            if (cond->rmax > 0)
+            {
+                int64_t dx = dst.x - at.x;
+                int64_t dz = dst.z - at.z;
+                int64_t rm = cond->rmax - 1;
+                inRange = (dx*dx + dz*dz <= rm*rm);
+            }
+            else
+            {
+                inRange = (dst.x >= lx1 && dst.x <= lx2 &&
+                           dst.z >= lz1 && dst.z <= lz2);
+            }
+
+            if (inRange)
+            {
+                cent->x = dst.x;
+                cent->z = dst.z;
+                return COND_OK;
+            }
+        }
+
+        return COND_FAILED;
+    }
 
     case F_SLIME:
 
@@ -1871,7 +2147,7 @@ L_qm_any:
             return COND_FAILED;
         if (cond->converage <= 0 || cond->converage > 1)
             return COND_FAILED;
-        if (cond->type == F_NOISE_SAMPLE && env->mc <= MC_1_17)
+        if (cond->type == F_NOISE_SAMPLE && env->mc < MC_1_18)
             return COND_FAILED;
 
         s = 2;
@@ -2105,7 +2381,7 @@ L_qm_any:
         return COND_MAYBE_POS_INVAL;
 
     case F_CLIMATE_MINMAX:
-        if (env->mc <= MC_1_17 || cond->para >= NP_MAX)
+        if (env->mc < MC_1_18 || cond->para >= NP_MAX)
             return COND_FAILED;
         rx1 = x1 >> 2;
         rz1 = z1 >> 2;
@@ -2153,7 +2429,7 @@ L_qm_any:
         }
 
     case F_CLIMATE_NOISE:
-        if (env->mc <= MC_1_17)
+        if (env->mc < MC_1_18)
             return COND_FAILED;
         rx1 = x1 >> 2;
         rz1 = z1 >> 2;

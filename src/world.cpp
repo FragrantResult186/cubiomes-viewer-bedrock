@@ -213,6 +213,16 @@ void getStructs(std::vector<VarPos> *out, const StructureConfig sconf,
             int ok = getStructurePos(sconf.structType, wi.mc, wi.seed, i, j, &p);
             if (sconf.structType == End_Gateway)
                 ok = getEndGatewayPos(wi.seed, g.en, sn, i, j, &p);
+            if (sconf.structType == Lava_Lake) 
+            {
+                int isDesert = 0;
+                if (wi.mc < MC_1_18)
+                {
+                    int biomeid = getBiomeAt(&g, 4, (i*16)>>2, 317>>2, (j*16)>>2);
+                    isDesert = (biomeid == desert) || (biomeid == desert_hills);
+                }
+                ok = getLavaLakes(wi.mc, wi.seed, i, j, i, j, &p, 1, isDesert);
+            }
             if (!ok)
                 continue;
 
@@ -458,7 +468,7 @@ void Quad::run()
     if (pixs > 0)
     {
         if ((lopt.mode == LOPT_STRUCTS && dim == DIM_OVERWORLD) ||
-            (g->mc <= MC_1_17 && scale > 256 && dim == DIM_OVERWORLD))
+            (g->mc < MC_1_18 && scale > 256 && dim == DIM_OVERWORLD))
         {
             img = new QImage();
             done = true;
@@ -572,12 +582,12 @@ void Level::init4map(QWorld *w, int pix, int layerscale)
             pixs = 1;
     }
 
-    if (lopt.mode == LOPT_RIVER_4 && wi.mc >= MC_1_13 && wi.mc <= MC_1_17)
+    if (lopt.mode == LOPT_RIVER_4 && wi.mc >= MC_1_13 && wi.mc < MC_1_18)
     {
         setupGenerator(&g, wi.mc, wi.large);
         g.ls.entry_4 = &g.ls.layers[L_RIVER_MIX_4];
     }
-    else if (lopt.mode == LOPT_OCEAN_256 && wi.mc >= MC_1_13 && wi.mc <= MC_1_17)
+    else if (lopt.mode == LOPT_OCEAN_256 && wi.mc >= MC_1_13 && wi.mc < MC_1_18)
     {
         setupGenerator(&g, wi.mc, wi.large);
         g.ls.entry_256 = &g.ls.layers[L_OCEAN_TEMP_256];
@@ -1319,14 +1329,20 @@ void QWorld::draw(QPainter& painter, int vw, int vh, qreal focusx, qreal focusz,
         }
     }
 
-    if (showBB && sshow[D_GATEWAY] && dim == DIM_END && g.mc > MC_1_12)
+    if (showBB && sshow[D_GATEWAY] && dim == DIM_END && g.mc >= MC_1_0)
     {
         if (endgates.empty())
         {
+            Pos src[20];
+            getFixedEndGateways(g.mc, g.seed, src);
             endgates.resize(40);
-            getFixedEndGateways(g.mc, g.seed, &endgates[0]);
             for (int i = 0; i < 20; i++)
-               endgates[20 + i] = getLinkedGatewayPos(&g.en, &sn, g.seed, endgates[i]);
+            {
+                endgates[i] = { src[i].x, 75+3, src[i].z };   // inner
+            
+                Pos3 dst = getLinkedGatewayPos(&g.en, &sn, g.seed, src[i]);
+                endgates[20 + i] = dst;                       // outer
+            }
         }
 
         for (int i = 0; i < 20; i++)
@@ -1340,6 +1356,45 @@ void QWorld::draw(QPainter& painter, int vw, int vh, qreal focusx, qreal focusz,
             painter.setPen(QPen(QColor(192, 0, 0, 160), i == 0 ? 1.5 : 0.5));
             painter.drawLine(QPointF(xsrc,ysrc), QPointF(xdst,ydst));
             painter.setPen(pen);
+
+            const QPixmap& gicon = getMapIcon(D_GATEWAY);
+            QRectF grec = gicon.rect();
+            // src
+            if (abs(xsrc) < vw + grec.width() && abs(ysrc) < vh + grec.height())
+                painter.drawPixmap(xsrc - grec.width()/2, ysrc - grec.height()/2, gicon);
+            // dst
+            if (abs(xdst) < vw + grec.width() && abs(ydst) < vh + grec.height())
+                painter.drawPixmap(xdst - grec.width()/2, ydst - grec.height()/2, gicon);
+
+            if (seldo)
+            {
+                QRectF rsrc = grec;
+                rsrc.moveCenter(QPointF(xsrc, ysrc));
+                // src
+                if (rsrc.contains(selx, selz))
+                {
+                    selopt = D_GATEWAY;
+                    selvp = VarPos({endgates[i].x, endgates[i].z}, End_Gateway);
+                    // mapview.cpp does p.x + v.x, so v.x/z is fixed to 0
+                    selvp.v.x = 0;//(int16_t)(endgates[i].x);
+                    selvp.v.y = 75+3; // baseY+3 Imagine if u teleported straight into an end portal
+                    selvp.v.z = 0;//(int16_t)(endgates[i].x);
+                    selvp.v.size = (uint8_t)(i + 1);
+                }
+                QRectF rdst = grec;
+                rdst.moveCenter(QPointF(xdst, ydst));
+                // dst
+                if (rdst.contains(selx, selz))
+                {
+                    selopt = D_GATEWAY;
+                    selvp = VarPos({endgates[i+20].x, endgates[i+20].z}, End_Gateway);
+                    // mapview.cpp does p.x + v.x, so v.x/z is fixed to 0
+                    selvp.v.x = 0;//(int16_t)(endgates[i+20].x);
+                    selvp.v.y = (int16_t)(endgates[i+20].y)+3;
+                    selvp.v.z = 0;//(int16_t)(endgates[i+20].x);
+                    selvp.v.size = (uint8_t)(i + 1);
+                }
+            }
 
             if (blocks2pix >= 1.0 && abs(xsrc) < vw && abs(ysrc) < vh)
             {

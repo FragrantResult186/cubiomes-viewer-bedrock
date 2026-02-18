@@ -130,6 +130,8 @@ private:
     QVector<VariantCheckBox*> variantboxes;
     uint64_t luahash;
 
+    QCheckBox *gatewaycboxes[20];
+
 public:
     MapView *mapview;
     Config *config;

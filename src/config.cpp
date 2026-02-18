@@ -130,7 +130,7 @@ bool LayerOpt::isClimate(int mc) const
 {
     if (mc <= MC_B1_7)
         return mode == LOPT_BETA_T_1 || mode == LOPT_BETA_H_1;
-    if (mc <= MC_1_17)
+    if (mc < MC_1_18)
         return false;
     return mode >= LOPT_NOISE_T_4 && mode <= LOPT_NOISE_W_4;
 }
@@ -302,8 +302,10 @@ int MapConfig::getTileSize(int opt) const
 {
     if (opt == D_MANSION)
         return 1280 * 16;
-    if (opt == D_GEODE)
+    if (opt == D_GEODE || opt == D_LAVALAKE)
         return 128 * 16;
+     if (opt == D_GATEWAY)
+        return 64 * 16;
     return 512 * 16;
 }
 
@@ -323,6 +325,7 @@ void MapConfig::reset()
     opts[D_RAVINE].scale = 16;
     opts[D_LAVALAKE].scale = 16;
     opts[D_STRONGHOLD].scale = 320;
+    opts[D_GATEWAY].scale = 4;
     zoomEnabled = false;
 }
 

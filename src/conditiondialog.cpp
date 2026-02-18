@@ -153,6 +153,18 @@ ConditionDialog::ConditionDialog(FormConditions *parent, MapView *mapview, Confi
     ui->gridLayoutBiomes->addWidget(separator, 128, 0, 1, 2);
 
     memset(tempsboxes, 0, sizeof(tempsboxes));
+    for (int i = 0; i < 20; i++)
+    {
+        gatewaycboxes[i] = new QCheckBox(QString::number(i+1), this);
+        ui->gridLayoutGateway->addWidget(gatewaycboxes[i], i/4, i%4);
+    }
+    connect(ui->pushGatewayAll, &QPushButton::clicked, this, [this](){
+        for (int i = 0; i < 20; i++) gatewaycboxes[i]->setChecked(true);
+    });
+    connect(ui->pushGatewayNone, &QPushButton::clicked, this, [this](){
+        for (int i = 0; i < 20; i++) gatewaycboxes[i]->setChecked(false);
+    });
+
 
     addTempCat(Oceanic, tr("Oceanic"));
     addTempCat(Warm, tr("Warm"));
@@ -196,6 +208,7 @@ ConditionDialog::ConditionDialog(FormConditions *parent, MapView *mapview, Confi
     ui->checkEndShip->setStyleSheet(tristyle);
     ui->checkBasement->setStyleSheet(tristyle);
     ui->checkMegaRavine->setStyleSheet(tristyle);
+    ui->checkUnderground->setStyleSheet(tristyle);
 
     memset(climaterange, 0, sizeof(climaterange));
     memset(climatecomplete, 0, sizeof(climatecomplete));
@@ -209,7 +222,7 @@ ConditionDialog::ConditionDialog(FormConditions *parent, MapView *mapview, Confi
         if (i == NP_DEPTH)
         {
             LabeledRange *lr;
-            if (wi.mc <= MC_1_17)
+            if (wi.mc < MC_1_18)
                 lr = new LabeledRange(this, 0, 256);
             else
                 lr = new LabeledRange(this, -64, 320);
@@ -428,6 +441,9 @@ ConditionDialog::ConditionDialog(FormConditions *parent, MapView *mapview, Confi
         ui->checkEndShip->setCheckState(totristate(cond.varflags, Condition::VAR_ENDSHIP));
         ui->checkBasement->setCheckState(totristate(cond.varflags, Condition::VAR_BASEMENT));
         ui->checkMegaRavine->setCheckState(totristate(cond.varflags, Condition::VAR_MEGARAVINE));
+        ui->checkUnderground->setCheckState(totristate(cond.varflags, Condition::VAR_UNDERGROUND));
+        for (int i = 0; i < 20; i++)
+            gatewaycboxes[i]->setChecked(cond.gwmask == 0 || (cond.gwmask & (1u << i)));
         for (VariantCheckBox *cb : qAsConst(variantboxes))
         {
             int idx = cb->sp - g_start_pieces;
@@ -472,7 +488,7 @@ void ConditionDialog::addTempCat(int temp, QString name)
     int r = temp % Special;
     ui->gridLayoutTemps->addWidget(tempsboxes[temp], r, c * 2 + 0);
     ui->gridLayoutTemps->addWidget(l, r, c * 2 + 1);
-    if (wi.mc > MC_1_6 && wi.mc <= MC_1_17)
+    if (wi.mc > MC_1_6 && wi.mc < MC_1_18)
     {
         uint64_t mL = 0, mM = 0;
         genPotential(&mL, &mM, L_SPECIAL_1024, wi.mc, 0, r + (temp >= Special ? 256 : 0));
@@ -610,7 +626,7 @@ void ConditionDialog::updateMode()
     else if (ft.cat == CAT_BIOMES)
     {
         ui->stackedWidget->setCurrentWidget(ui->pageBiomes);
-        ui->checkApprox->setEnabled(wi.mc <= MC_1_17 || ft.grid == 4);
+        ui->checkApprox->setEnabled(wi.mc < MC_1_18 || ft.grid == 4);
         ui->checkMatchAny->setEnabled(true);
         if (filterindex == F_BIOME_SAMPLE)
             ui->stackedBiome->setCurrentWidget(ui->pageBiomeOptSample);
@@ -642,6 +658,10 @@ void ConditionDialog::updateMode()
     {
         ui->stackedWidget->setCurrentWidget(ui->pageEndCity);
         ui->checkEndShip->setEnabled(wi.mc >= MC_1_0);
+    }
+    else if (filterindex == F_LINKED_GATEWAY)
+    {
+        ui->stackedWidget->setCurrentWidget(ui->pageLinkedGateway);
     }
     else if (filterindex == F_IGLOO)
     {
@@ -754,7 +774,7 @@ void ConditionDialog::updateBiomeSelection()
         available.push_back(cold_ocean);
         available.push_back(frozen_ocean);
     }
-    else if (ft.cat == CAT_BIOMES && wi.mc > MC_B1_7 && wi.mc <= MC_1_17)
+    else if (ft.cat == CAT_BIOMES && wi.mc > MC_B1_7 && wi.mc < MC_1_18)
     {
         int layerId = L_RIVER_MIX_4;
         if (filter != F_BIOME_4_RIVER)
@@ -1147,7 +1167,17 @@ void ConditionDialog::onAccept()
     {
         c.step = ui->lineSpiralStep->text().toUShort();
     }
-
+    if (ui->stackedWidget->currentWidget() == ui->pageLinkedGateway)
+    {
+        c.gwmask = 0;
+        for (int i = 0; i < 20; i++)
+        {
+            if (gatewaycboxes[i]->isChecked())
+                c.gwmask |= (1u << i);
+        }
+        if (c.gwmask == (1u << 20) - 1)
+            c.gwmask = 0;
+    }
     c.varflags = c.varstart = 0;
     if (ui->checkStartPieces->isChecked())
         c.varflags |= Condition::VAR_WITH_START;
@@ -1157,6 +1187,7 @@ void ConditionDialog::onAccept()
     c.varflags |= tristateFlags(ui->checkEndShip, Condition::VAR_ENDSHIP);
     c.varflags |= tristateFlags(ui->checkBasement, Condition::VAR_BASEMENT);
     c.varflags |= tristateFlags(ui->checkMegaRavine, Condition::VAR_MEGARAVINE);
+    c.varflags |= tristateFlags(ui->checkUnderground, Condition::VAR_UNDERGROUND);
 
     for (VariantCheckBox *cb : qAsConst(variantboxes))
     {

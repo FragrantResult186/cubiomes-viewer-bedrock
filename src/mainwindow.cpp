@@ -358,6 +358,14 @@ MapView* MainWindow::getMapView()
     return mapView;
 }
 
+static QString seedToString(uint64_t seed, bool is64bit)
+{
+    if (is64bit)
+        return QString::asprintf("%" PRId64, (int64_t)seed);
+    else
+        return QString::asprintf("%" PRId32, (int32_t)seed);
+}
+
 bool MainWindow::getSeed(WorldInfo *wi, bool applyrand)
 {
     bool ok = true;
@@ -391,8 +399,8 @@ bool MainWindow::setSeed(WorldInfo wi, int dim)
     
     if (!is64bit)
     {
-        int32_t seed32 = (int32_t)wi.seed;
-        wi.seed = (uint64_t)(int64_t)seed32;
+        uint32_t seed32 = (uint32_t)wi.seed;
+        wi.seed = seed32;
         
         if (wi.seed == 0 && ui->seedEdit->text().trimmed().length() > 0)
         {
@@ -430,7 +438,7 @@ bool MainWindow::setSeed(WorldInfo wi, int dim)
             ui->menuHistory->removeAction(rm);
             rm->deleteLater();
         }
-        QString s = QString::asprintf("%" PRId64, wi.seed);
+        QString s = seedToString(wi.seed, is64bit);
         QAction *act = new QAction(s, this);
         act->setData(QVariant::fromValue(wi.seed));
         act->connect(act, &QAction::triggered, [=](){ this->onActionHistory(act); });
@@ -452,7 +460,7 @@ bool MainWindow::setSeed(WorldInfo wi, int dim)
     ui->comboY->setCurrentIndex(i);
 
     ui->comboBoxMC->setCurrentText(mc2str(wi.mc));
-    ui->seedEdit->setText(QString::asprintf("%" PRId64, (int64_t)wi.seed));
+    ui->seedEdit->setText(seedToString(wi.seed, is64bit));
     getMapView()->setSeed(wi, dim, lopt);
 
     ui->comboBoxMC->setEnabled(true);
@@ -667,7 +675,7 @@ void MainWindow::updateMapSeed()
     ui->actionNoOceans->setEnabled(state);
     ui->actionBetaTemperature->setEnabled(state);
     ui->actionBetaHumidity->setEnabled(state);
-    state = (wi.mc >= MC_1_13 && wi.mc <= MC_1_17);
+    state = (wi.mc >= MC_1_13 && wi.mc < MC_1_18);
     ui->actionRiver->setEnabled(state);
     ui->actionOceanTemp->setEnabled(state);
     state = (wi.mc >= MC_1_18);
@@ -678,8 +686,8 @@ void MainWindow::updateMapSeed()
     ui->actionParaDepth->setEnabled(state);
     ui->actionParaWeirdness->setEnabled(state);
 
-    ui->actionAddShadow->setEnabled(wi.mc <= MC_1_17);
-    ui->actionOpenShadow->setEnabled(wi.mc <= MC_1_17);
+    ui->actionAddShadow->setEnabled(wi.mc < MC_1_18);
+    ui->actionOpenShadow->setEnabled(wi.mc < MC_1_18);
 
     emit mapUpdated();
     update();

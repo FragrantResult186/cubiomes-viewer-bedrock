@@ -66,6 +66,7 @@ enum
     F_BIOME_END_64,
     F_PORTALN,
     F_GATEWAY,
+    F_LINKED_GATEWAY,
     F_MINESHAFT,
     F_RAVINE,
     F_LAVALAKE,
@@ -87,6 +88,7 @@ enum
     F_BIOME_CENTER_256,
     F_CLIMATE_MINMAX,
     F_HEIGHT,
+    F_GEODE,
     F_LUA,
     F_WELL,
     F_TRAILS,
@@ -375,6 +377,12 @@ static const struct FilterList : private FilterInfo
             QT_TRANSLATE_NOOP("Filter",
             "Check the approximate surface height at scale 1:4 at a single coordinate.")
         };
+        list[F_LAVALAKE] = FilterInfo{
+            CAT_OTHER, 1, LOC_REC, 0, 1, BR_NONE, MC_1_1, MC_NEWEST, 0, 0, disp++,
+            "lavalake",
+            QT_TRANSLATE_NOOP("Filter", "Lava lake"),
+            ""
+        };
 
         list[F_STRONGHOLD] = FilterInfo{
             CAT_STRUCT, 1, LOC_RAD, 0, 1, BR_CLUST, MC_UNDEF, MC_NEWEST, 0, 0, disp++,
@@ -401,6 +409,12 @@ static const struct FilterList : private FilterInfo
             CAT_OTHER, 1, LOC_RAD, Ravine, 1, BR_CLUST, MC_1_2, MC_NEWEST, 0, 0, disp++,
             "ravine",
             QT_TRANSLATE_NOOP("Filter", "Ravine"),
+            ""
+        };
+        list[F_GEODE] = FilterInfo{
+            CAT_OTHER, 1, LOC_RAD, Geode, 1, BR_CLUST, MC_1_17, MC_NEWEST, 0, 0, disp++,
+            "geode",
+            QT_TRANSLATE_NOOP("Filter", "Geode"),
             ""
         };
 
@@ -546,13 +560,21 @@ static const struct FilterList : private FilterInfo
             ""
         };
 
-        list[F_GATEWAY] = FilterInfo{
-            CAT_STRUCT, 0, LOC_RAD, End_Gateway, 1, BR_CLUST, MC_1_0, MC_NEWEST, +1, 0, disp++,
+        //list[F_GATEWAY] = FilterInfo{
+        //    CAT_STRUCT, 0, LOC_RAD, End_Gateway, 1, BR_CLUST, MC_1_0, MC_NEWEST, +1, 0, disp++,
+        //    "gateway",
+        //    QT_TRANSLATE_NOOP("Filter", "End gateway"),
+        //    QT_TRANSLATE_NOOP("Filter",
+        //    "Checks only scattered return gateways. Does not include those generated "
+        //    "when defeating the dragon.")
+        //};
+        list[F_LINKED_GATEWAY] = FilterInfo{
+            CAT_STRUCT, 0, LOC_2, End_Gateway, 1, BR_NONE, MC_1_0, MC_NEWEST, +1, 0, disp++,
             "gateway",
-            QT_TRANSLATE_NOOP("Filter", "End gateway"),
+            QT_TRANSLATE_NOOP("Filter", "Linked End Gateway"),
             QT_TRANSLATE_NOOP("Filter",
-            "Checks only scattered return gateways. Does not include those generated "
-            "when defeating the dragon.")
+            "Checks that the outer (island-side) End Gateway linked to a specific "
+            "inner gateway index is within the specified area.")
         };
     }
 }
@@ -589,6 +611,7 @@ struct /*__attribute__((packed))*/ Condition
         VAR_NOT         = 0x0010, // invert flag (e.g. not abandoned)
         VAR_BASEMENT    = 0x0020, // igloo with basement
         VAR_MEGARAVINE  = 0x0040, // mega ravine
+        VAR_UNDERGROUND = 0x0080, // underground portal
     };
     enum { // min/max
         // legacy 0:min<= 1:max>= 2:min>= 3:max<=
@@ -632,6 +655,8 @@ struct /*__attribute__((packed))*/ Condition
     float       vmax;
     float       converage;
     float       confidence;
+    int         gwindex;// linked gateway: inner gateway index (0-19)
+    uint32_t    gwmask; // linked gateway: bitmask of allowed indices (bit i = index i, 0 = all allowed)
 
     // generated members - initialized when the search is started
     uint8_t     generated_start[0]; // address dummy
@@ -650,7 +675,7 @@ struct /*__attribute__((packed))*/ Condition
 };
 
 static_assert(
-    offsetof(Condition, generated_start) == 320,
+    offsetof(Condition, generated_start) == 328,
     "Layout of Condition has changed!"
 );
 
@@ -687,9 +712,11 @@ struct SearchThreadEnv
 
     Generator g;
     SurfaceNoise sn;
+    EndNoise en;
 
     int mc, large;
     uint64_t seed;
+    uint64_t endnoiseseed = ~0ULL;
     int surfdim;
     int octaves;
 
@@ -707,6 +734,7 @@ struct SearchThreadEnv
     void init4Dim(int dim);
     void init4Noise(int nptype, int octaves);
     void prepareSurfaceNoise(int dim);
+    void prepareEndNoise();
 };
 
 /* Checks if a seed satisfies the conditions tree.
