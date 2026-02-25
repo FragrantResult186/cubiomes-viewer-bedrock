@@ -307,16 +307,16 @@ int runCheckScript(
 {
     int top = lua_gettop(L);
     const char *func;
-    if (pass == PASS_FAST_48)
-        func = "check48";
+    if (pass == PASS_FAST_32)
+        func = "check32";
     else
         func = "check";
 
     if (lua_getglobal(L, func) != LUA_TFUNCTION)
     {
         lua_settop(L, top);
-        if (pass == PASS_FAST_48)
-            return COND_MAYBE_POS_INVAL; // 48-bit check is optional
+        if (pass == PASS_FAST_32)
+            return COND_MAYBE_POS_INVAL; // 32-bit check is optional
         return COND_FAILED;
     }
 
@@ -380,7 +380,7 @@ int runCheckScript(
             }
             path[cond->save].x = (int) x;
             path[cond->save].z = (int) z;
-            if (pass == PASS_FAST_48)
+            if (pass == PASS_FAST_32)
                 return COND_MAYBE_POS_VALID;
             return COND_OK;
         }

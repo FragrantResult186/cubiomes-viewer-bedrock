@@ -19,7 +19,7 @@ int getStructureConfig_override(int stype, int mc, StructureConfig *sconf)
     if (ok && g_extgen.saltOverride)
     {
         uint64_t salt = g_extgen.salts[stype];
-        if (salt <= MASK48)
+        if (salt <= MASK32)
             sconf->salt = salt;
     }
     return ok;

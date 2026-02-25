@@ -93,6 +93,7 @@ public:
     uint64_t                    smin;
     uint64_t                    smax;
     bool                        isdone;
+    bool                        force32bit;
 };
 
 

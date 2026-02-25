@@ -1637,6 +1637,39 @@ QPushButton:hover {
            </item>
           </layout>
          </widget>
+         <widget class="QWidget" name="pageScale">
+           <layout class="QGridLayout" name="gridLayout_Scale">
+             <property name="leftMargin"><number>0</number></property>
+             <property name="topMargin"><number>0</number></property>
+             <property name="rightMargin"><number>0</number></property>
+             <property name="bottomMargin"><number>0</number></property>
+             <item row="0" column="0">
+               <widget class="QGroupBox" name="groupBoxScale">
+                 <property name="title"><string>Coordinate scale factor</string></property>
+                 <layout class="QGridLayout" name="gridLayoutScaleInner">
+                   <item row="0" column="0">
+                     <widget class="QLabel">
+                       <property name="text"><string>Scale factor:</string></property>
+                     </widget>
+                   </item>
+                   <item row="0" column="1">
+                     <widget class="QLineEdit" name="lineScaleFactor">
+                       <property name="text"><string>8</string></property>
+                     </widget>
+                   </item>
+                   <item row="1" column="0" colspan="2">
+                     <spacer name="verticalSpacer_Scale">
+                       <property name="orientation"><enum>Qt::Vertical</enum></property>
+                       <property name="sizeHint" stdset="0">
+                         <size><width>20</width><height>40</height></size>
+                       </property>
+                     </spacer>
+                   </item>
+                 </layout>
+               </widget>
+             </item>
+           </layout>
+         </widget>
          <widget class="QWidget" name="pageVillage">
           <layout class="QGridLayout" name="gridLayoutVillage">
            <property name="leftMargin">

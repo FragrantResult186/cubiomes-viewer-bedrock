@@ -34,6 +34,7 @@ ConditionDialog::ConditionDialog(FormConditions *parent, MapView *mapview, Confi
 {
     memset(&cond, 0, sizeof(cond));
     ui->setupUi(this);
+    ui->lineSummary->setMaxLength(sizeof(cond.text) - 1);
 
     connect(ui->buttonBox, &QDialogButtonBox::accepted, this, &ConditionDialog::onAccept);
     connect(ui->buttonBox, &QDialogButtonBox::rejected, this, &ConditionDialog::onReject);
@@ -105,6 +106,8 @@ ConditionDialog::ConditionDialog(FormConditions *parent, MapView *mapview, Confi
 
     ui->lineBiomeSize->setValidator(new QIntValidator(1, INT_MAX, this));
     ui->lineTolerance->setValidator(new QIntValidator(0, 255, this));
+
+    ui->lineScaleFactor->setValidator(new QIntValidator(1, 30e6, this));
 
     initComboY(ui->comboY1, initcond ? initcond->y : 256);
     initComboY(ui->comboY2, initcond ? initcond->y : 256);
@@ -332,7 +335,8 @@ ConditionDialog::ConditionDialog(FormConditions *parent, MapView *mapview, Confi
         const FilterInfo &ft = g_filterinfo.list[cond.type];
 
         ui->checkEnabled->setChecked(!(cond.meta & Condition::DISABLED));
-        ui->lineSummary->setText(QString::fromLocal8Bit(QByteArray(cond.text, sizeof(cond.text))));
+        // C文字列扱いにすると末尾のヌルが切られる
+        ui->lineSummary->setText(QString::fromLocal8Bit(cond.text));
         ui->lineSummary->setPlaceholderText(QApplication::translate("Filter", ft.name));
 
         if (cond.hash && !scripts.contains(cond.hash))
@@ -685,6 +689,16 @@ void ConditionDialog::updateMode()
     {
         ui->stackedWidget->setCurrentWidget(ui->pageSpiral);
     }
+    else if (filterindex == F_SCALE_TO_NETHER || filterindex == F_SCALE_TO_OVERWORLD)
+    {
+        ui->stackedWidget->setCurrentWidget(ui->pageScale);
+        int factor = cond.step > 0 ? cond.step : 8;
+        ui->lineScaleFactor->setText(QString::number(factor));
+        ui->groupBoxScale->setTitle(filterindex == F_SCALE_TO_NETHER
+            ? tr("Coordinate scale factor (divide)")
+            : tr("Coordinate scale factor (multiply)")
+        );
+    }
     else
     {
         ui->stackedWidget->setCurrentWidget(ui->pageNone);
@@ -1011,6 +1025,15 @@ bool ConditionDialog::warnIfBad(Condition cond)
             }
         }
     }
+    else if (cond.type == F_SCALE_TO_NETHER || cond.type == F_SCALE_TO_OVERWORLD)
+    {
+        if (cond.step <= 0)
+        {
+            QString text = tr("Scale factor must be a positive integer.");
+            warn(this, tr("Invalid scale factor"), text);
+            return false;
+        }
+    }
     return true;
 }
 
@@ -1051,8 +1074,9 @@ void ConditionDialog::onAccept()
     else
         c.meta |= Condition::DISABLED;
 
-    QByteArray text = ui->lineSummary->text().toLocal8Bit().leftJustified(sizeof(c.text), '\0');
-    memcpy(c.text, text.data(), sizeof(c.text));
+    QByteArray text = ui->lineSummary->text().toLocal8Bit();
+    memset(c.text, 0, sizeof(c.text));
+    memcpy(c.text, text.constData(), qMin<int>(text.size(), sizeof(c.text) - 1));
 
     c.hash = ui->comboLua->currentData().toULongLong();
 
@@ -1166,6 +1190,11 @@ void ConditionDialog::onAccept()
     if (ui->stackedWidget->currentWidget() == ui->pageSpiral)
     {
         c.step = ui->lineSpiralStep->text().toUShort();
+    }
+    if (ui->stackedWidget->currentWidget() == ui->pageScale)
+    {
+        int f = ui->lineScaleFactor->text().toInt();
+        c.step = f > 0 ? f : 0;
     }
     if (ui->stackedWidget->currentWidget() == ui->pageLinkedGateway)
     {

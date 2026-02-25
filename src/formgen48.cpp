@@ -232,9 +232,9 @@ void FormGen48::updateCount()
 {
     uint64_t cnt = estimateSeedCnt();
 
-    if (cnt >= MASK48+1)
+    if (cnt >= MASK32+1)
     {
-        ui->labelCount->setText(tr("all", "Checking all 64-bit seeds"));
+        ui->labelCount->setText(tr("all", "Checking all 32-bit seeds"));
     }
     else
     {

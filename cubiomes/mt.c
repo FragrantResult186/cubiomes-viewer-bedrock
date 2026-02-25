@@ -21,6 +21,7 @@ struct MTState_
 {
   uint32_t MT[SIZE];
   size_t index;
+  size_t index_fast; /* lazy init progress */
 };
 
 typedef struct MTState_ MTState;
@@ -36,25 +37,33 @@ static __thread MTState state;
 #define MIXBITS(u,v) (M32(u) | L31(v))
 #define TWIST(u,v) ((MIXBITS(u,v) >> 1) ^ ((v & 1) ? MAGIC : 0))
 
-static inline void generate()
+static inline uint32_t generate()
 {
-  uint32_t *p = state.MT;
-  uint32_t *p_end = p + DIFF;
-  uint32_t *p_end2 = p + SIZE - 1;
-  
-  while (p < p_end) {
-    *p = p[PERIOD] ^ TWIST(p[0], p[1]);
-    ++p;
+  size_t idx = state.index;
+  if (idx == SIZE) idx = 0;
+
+  if (idx >= DIFF)
+  {
+    if (idx >= SIZE - 1)
+      state.MT[SIZE-1] = state.MT[PERIOD-1] ^ TWIST(state.MT[SIZE-1], state.MT[0]);
+    else
+      state.MT[idx] = state.MT[idx - DIFF] ^ TWIST(state.MT[idx], state.MT[idx+1]);
   }
-  
-  while (p < p_end2) {
-    *p = p[PERIOD - SIZE] ^ TWIST(p[0], p[1]);
-    ++p;
+  else 
+  {
+    state.MT[idx] = state.MT[idx + PERIOD] ^ TWIST(state.MT[idx], state.MT[idx+1]);
+    /* advance lazy init one slot */
+    if (state.index_fast < SIZE)
+    {
+      state.MT[state.index_fast] = 0x6c078965
+        * (state.MT[state.index_fast-1] ^ (state.MT[state.index_fast-1] >> 30))
+        + state.index_fast;
+      state.index_fast++;
+    }
   }
-  
-  *p = p[PERIOD - SIZE] ^ TWIST(p[0], state.MT[0]);
-  
-  state.index = 0;
+
+  state.index = idx + 1;
+  return state.MT[idx];
 }
 
 static inline uint32_t temper(uint32_t y)
@@ -70,17 +79,22 @@ void mt_seed(uint32_t value)
 {
   state.MT[0] = value;
   
-  for (uint_fast32_t i = 1; i < SIZE; ++i)
+  for (uint_fast32_t i = 1; i <= PERIOD; ++i)
     state.MT[i] = 0x6c078965 * (state.MT[i - 1] ^ (state.MT[i - 1] >> 30)) + i;
   
+  state.index_fast = PERIOD + 1;
   state.index = SIZE;
 }
 
 uint32_t mt_next()
 {
-  if (state.index >= SIZE) {
-    generate();
+  if (state.index > SIZE) {
+    /* called without mt_seed(): full init with default seed */
+    for (uint_fast32_t i = 1; i < SIZE; ++i)
+      state.MT[i] = 0x6c078965 * (state.MT[i - 1] ^ (state.MT[i - 1] >> 30)) + i;
+    state.index_fast = SIZE;
+    state.index = SIZE;
   }
   
-  return temper(state.MT[state.index++]);
+  return temper(generate());
 }

@@ -75,7 +75,7 @@ void ExtGenDialog::initSettings(ExtGenConfig *extgen)
         uint64_t salt = extgen->salts[i];
         if (salt != ~(uint64_t)0)
         {
-            checkSalts[i]->setChecked(salt <= MASK48);
+            checkSalts[i]->setChecked(salt <= MASK32);
             lineSalts[i]->setText(QString::asprintf("%" PRIu64, salt & MASK48));
         }
         else

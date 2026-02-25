@@ -315,6 +315,20 @@ bool SearchMaster::set(QWidget *widget, const Session& s)
     this->smax = s.sc.smax;
     this->isdone = false;
     this->stop = false;
+    this->force32bit = (s.wi.mc < MC_1_18);
+    if (force32bit)
+    {
+        if (smin == 0 && smax == ~(uint64_t)0)
+        {
+            smin = 0;
+            smax = 0x00000000FFFFFFFFULL; // = 4294967295
+        }
+        else
+        {
+            smin = smin & 0xFFFFFFFFULL;
+            smax = smax & 0xFFFFFFFFULL;
+        }
+    }
     return true;
 }
 
@@ -491,10 +505,22 @@ void SearchMaster::preSearch()
         }
         else
         {
-            prog = seed = sstart;
-            scnt = smax = MASK32;
-            if (seed > smax)
-                isdone = true;
+            int32_t s0 = (int32_t)sstart;
+            seed = (uint64_t)(uint32_t)s0;
+            scnt = (uint64_t)INT32_MAX - (uint32_t)s0 + 1;
+            smax = (uint64_t)INT32_MAX;
+            prog = (uint64_t)((int64_t)s0 - (int64_t)INT32_MIN);
+        }
+    }
+
+    if (force32bit && searchtype == SEARCH_INC && slist.empty())
+    {
+        const uint64_t neg_min = (uint64_t)(int64_t)INT32_MIN; // 0xFFFFFFFF80000000
+        const uint64_t pos_max = (uint64_t)INT32_MAX;          // 0x000000007FFFFFFF
+        if (smin == 0 && smax == ~(uint64_t)0)
+        {
+            smin = neg_min;
+            smax = ~(uint64_t)0; // 0xFFFFFFFFFFFFFFFF
         }
     }
 
@@ -533,6 +559,13 @@ void SearchMaster::preSearch()
         else
         {   // simple incremental search
             seed = sstart;
+            if (force32bit)
+            {
+                uint64_t neg_min = (uint64_t)(int64_t)INT32_MIN;
+                uint64_t pos_max = (uint64_t)INT32_MAX;
+                if (seed > pos_max && seed < neg_min)
+                    seed = neg_min;
+            }
             if (seed < smin)
                 seed = smin;
             prog = seed - smin;
@@ -875,7 +908,7 @@ bool SearchMaster::requestItem(SearchWorker *item)
                 for (; low <= MASK32 && !stop; low++)
                 {
                     env.setSeed(low);
-                    if (testTreeAt(origin, &env, PASS_FAST_48, nullptr)
+                    if (testTreeAt(origin, &env, PASS_FULL_64, nullptr)
                         != COND_FAILED)
                     {
                         break;
@@ -982,24 +1015,25 @@ void SearchWorker::run()
                             emit result(seed);
                     }
                 }
+                if (ie == len) // done
+                    break;
             }
             else
             {
-                seed = sstart;
-                for (int i = 0; i < scnt; i++)
+                int32_t s = (int32_t)sstart;
+                int64_t end = (int64_t)s + (int64_t)scnt - 1;
+                if (end > INT32_MAX) end = INT32_MAX;
+
+                for (; s <= (int32_t)end && !*env.stop; ++s)
                 {
-                    env.setSeed(seed);
-                    if (testTreeAt(origin, &env, PASS_FULL_32, nullptr) != COND_FAILED)
+                    uint64_t us = (uint32_t)s;
+                    env.setSeed(us);
+                    if (testTreeAt(origin, &env, PASS_FULL_32, nullptr) !=
+                        COND_FAILED)
                     {
                         if (!*env.stop)
-                            emit result(seed);
+                            emit result(us);
                     }
-
-                    if (seed >= MASK32)
-                    {   // done
-                        break;
-                    }
-                    seed++;
                 }
             }
         }
@@ -1035,21 +1069,25 @@ void SearchWorker::run()
                 }
             }
             else
-            {   // seed++
+            {
                 seed = sstart;
                 for (int i = 0; i < scnt; i++)
                 {
-                    env.setSeed(seed);
+                    uint64_t actual_seed = seed;
+                    if (master->force32bit)
+                    {
+                        int32_t s32 = (int32_t)(seed & 0xFFFFFFFF);
+                        actual_seed = (uint64_t)(int64_t)s32;
+                    }
+
+                    env.setSeed(actual_seed);
                     if (testTreeAt(origin, &env, PASS_FULL_64, nullptr) == COND_OK)
                     {
                         if (!*env.stop)
-                            emit result(seed);
+                            emit result(actual_seed);
                     }
 
-                    if (seed == ~(uint64_t)0)
-                    {   // done
-                        break;
-                    }
+                    //if (seed == smax) break;
                     seed++;
                 }
             }
@@ -1058,7 +1096,7 @@ void SearchWorker::run()
 
     case SEARCH_BLOCKS:
         while (!*env.stop && getNextItem())
-        {   // seed = ([..] << 32) | low
+        {
             if (slist && idx >= len)
             {
                 continue;

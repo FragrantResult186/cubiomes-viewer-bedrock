@@ -151,7 +151,7 @@ STRUCT(BiomeFilter)
  *  For most structure positions, Minecraft divides the world into a grid of
  *  regions (usually 32x32 chunks) and performs one generation attempt
  *  somewhere in each region. The position of this attempt is governed by the
- *  structure type, the region coordiates and the lower 48-bits of the world
+ *  structure type, the region coordiates and the lower 32-bits of the world
  *  seed. The remaining top 32 bits do not influence structure positions.
  *  The dependency on the region coordinates is linear for both the X and Z
  *  directions, which means that the positions of most structures in a world
@@ -209,7 +209,7 @@ int getStructureConfig_override(int stype, int mc, StructureConfig *sconf);
  *
  * @structureType   : structure type
  * @mc              : minecraft version
- * @seed            : world seed (only the lower 48-bits are relevant)
+ * @seed            : world seed (only the lower 32-bits are relevant)
  * @regX,regZ       : region coordinates (the region size depends on type)
  * @pos             : output block position
  *
@@ -901,8 +901,7 @@ int isVillageChunk(StructureConfig config, uint64_t seed, int chunkX, int chunkZ
     int vchunkX = nextInt(chunkRange) + chunkX - regionOffset(chunkX, regionSize);
     int vchunkZ = nextInt(chunkRange) + chunkZ - regionOffset(chunkZ, regionSize);
 
-    if (vchunkX == chunkX && vchunkZ == chunkZ) return 1;
-    return 0;
+    return vchunkX == chunkX && vchunkZ == chunkZ;
 }
 
 #ifdef __cplusplus

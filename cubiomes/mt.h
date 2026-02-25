@@ -59,62 +59,61 @@ static inline void skipNextN(int n)
 #define REGION_A 341873128712L
 #define REGION_B 132897987541L
 
-static inline int setTerrainSeed(int chunkX, int chunkZ)
+static inline int32_t setTerrainSeed(int32_t chunkX, int32_t chunkZ)
 {
-    int seed = (chunkX * (int)REGION_A) + (chunkZ * (int)REGION_B);
+    uint32_t seed = (uint32_t)((int64_t)chunkX * REGION_A + (int64_t)chunkZ * REGION_B);
     setSeed(seed);
-    return seed;
+    return (int32_t)seed;
 }
 
-static inline int setPopulationSeed(uint64_t worldSeed, int x, int z)
+static inline uint32_t setPopulationSeed(uint64_t worldSeed, int32_t chunkX, int32_t chunkZ)
 {
     setSeed(worldSeed);
     uint32_t a = next() | 1;
     uint32_t b = next() | 1;
-    int seed = (x * a + z * b) ^ (int)worldSeed;
+    uint32_t seed = (chunkX * a + chunkZ * b) ^ (uint32_t)worldSeed;
     setSeed(seed);
     return seed;
 }
 
-static inline int setDecorationSeed(int populationSeed, int salt)
-{
-    int seed = (((uint32_t)populationSeed >> 2) + (populationSeed << 6) + salt - 1640531527) ^ populationSeed;
-    setSeed(seed);
-    return seed;
-}
-
-static inline int setDecorationSeedFromWorld(uint64_t worldSeed, int chunkX, int chunkZ, int salt)
-{
-    return setDecorationSeed(setPopulationSeed(worldSeed, chunkX, chunkZ), salt);
-}
-
-static inline int setCarverSeed(uint64_t worldSeed, int chunkX, int chunkZ)
+static inline uint32_t setDecorationSeed(uint64_t worldSeed, int32_t chunkX, int32_t chunkZ, int salt)
 {
     setSeed(worldSeed);
-    int seed = (chunkX * next()) ^ (chunkZ * next()) ^ (int)worldSeed;
+    uint32_t a = next() | 1;
+    uint32_t b = next() | 1;
+    uint32_t popSeed = (chunkX * a + chunkZ * b) ^ (uint32_t)worldSeed;
+    uint32_t seed = ((popSeed >> 2) + (popSeed << 6) + (uint32_t)salt - 1640531527u) ^ popSeed;
     setSeed(seed);
     return seed;
 }
 
-static inline int setRegionSeed(uint64_t worldSeed, int regionX, int regionZ, int salt)
+static inline uint32_t setCarverSeed(uint64_t worldSeed, int32_t chunkX, int32_t chunkZ)
 {
-    int seed = (regionX * REGION_A) + (regionZ * REGION_B) + (int)worldSeed + salt;
+    setSeed((uint32_t)worldSeed);
+    uint32_t seed = (chunkX * next()) ^ (chunkZ * next()) ^ (uint32_t)worldSeed;
     setSeed(seed);
     return seed;
 }
 
-static inline int setFortressSeed(uint64_t worldSeed, int chunkX, int chunkZ)
+static inline uint32_t setRegionSeed(uint64_t worldSeed, int32_t regionX, int32_t regionZ, int32_t salt)
 {
-    int seed = ((chunkX >> 4) ^ ((chunkZ >> 4) << 4)) ^ (int)worldSeed;
+    uint32_t seed = (uint32_t)((int64_t)regionX * REGION_A) + (uint32_t)((int64_t)regionZ * REGION_B) + (uint32_t)worldSeed + (uint32_t)salt;
     setSeed(seed);
     return seed;
 }
 
-static inline int seedSlimeChunk(int chunkX, int chunkZ)
+static inline uint32_t setFortressSeed(uint64_t worldSeed, int32_t chunkX, int32_t chunkZ)
 {
-    int seed = (chunkX * 522133279) ^ chunkZ;
+    uint32_t seed = ((chunkX >> 4) ^ ((chunkZ >> 4) << 4)) ^ (uint32_t)worldSeed;
     setSeed(seed);
     return seed;
+}
+
+static inline uint32_t seedSlimeChunk(int32_t chunkX, int32_t chunkZ)
+{
+    uint32_t seed = ((uint32_t)chunkX * 522133279U) ^ (uint32_t)chunkZ;
+    setSeed(seed);
+    return (int32_t)seed;
 }
 
 #ifdef __cplusplus

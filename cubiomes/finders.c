@@ -246,11 +246,13 @@ int getStructurePos(int structureType, int mc, uint64_t seed, int regX, int regZ
         } 
         else 
         {
-            setFortressSeed(seed, regX*16, regZ*16);
-            skipNextN(1);
+            int cx = regX << 4;
+            int cz = regZ << 4;
+            setFortressSeed(seed, cx, cz);
+            skipNextN(1); 
             if (nextInt(3) != 0) return 0;
-            pos->x = (int)(((uint64_t)regX*sconf.regionSize + nextInt(sconf.chunkRange)) << 4)+11;
-            pos->z = (int)(((uint64_t)regZ*sconf.regionSize + nextInt(sconf.chunkRange)) << 4)+11;
+            pos->x = ((cx & ~15) + nextInt(sconf.chunkRange) + 4) << 4;
+            pos->z = ((cz & ~15) + nextInt(sconf.chunkRange) + 4) << 4;
             return 1;
         }
 
@@ -271,7 +273,7 @@ int getStructurePos(int structureType, int mc, uint64_t seed, int regX, int regZ
     {
         pos->x = regX << 4;
         pos->z = regZ << 4;
-        setDecorationSeedFromWorld(seed, regX, regZ, sconf.salt);
+        setDecorationSeed(seed, regX, regZ, sconf.salt);
         if (nextInt(sconf.rarity) != 0) return 0;
         pos->x += nextInt(16);
         pos->z += nextInt(16);
@@ -298,7 +300,7 @@ int getStructurePos(int structureType, int mc, uint64_t seed, int regX, int regZ
     {
         pos->x = regX << 4;
         pos->z = regZ << 4;
-        setDecorationSeedFromWorld(seed, regX, regZ, sconf.salt);
+        setDecorationSeed(seed, regX, regZ, sconf.salt);
         if (nextInt(sconf.rarity) != 0) return 0;
         pos->x += 4;
         pos->z += 4;
@@ -384,7 +386,7 @@ int getGeodes(int mc, uint64_t seed, int cx0, int cz0, int cx1, int cz1,
     {
         for (int j = cz0; j <= cz1; j++)
         {
-            setDecorationSeedFromWorld(seed, i, j, sconf.salt);
+            setDecorationSeed(seed, i, j, sconf.salt);
             if (nextInt(chance) == 0)
             {
                 x = i*16+4;
@@ -1384,7 +1386,7 @@ int isViableStructurePos(int structureType, Generator *g, int x, int z, uint32_t
 
     if (g->dim == DIM_NETHER)
     {
-        if (structureType == Fortress && g->mc < MC_1_18)
+        if (structureType == Fortress && g->mc < MC_1_16)
             return 1;
         if (g->mc <= MC_1_14)
             return 0;
@@ -1404,7 +1406,7 @@ int isViableStructurePos(int structureType, Generator *g, int x, int z, uint32_t
             return !isViableStructurePos(Bastion, g, x, z, flags);
         }
         sampleY = 0;
-        if (g->mc >= MC_1_18 && structureType == Bastion)
+        if (g->mc >= MC_1_16 && structureType == Bastion)
         {
             StructureVariant sv;
             getVariant(&sv, Bastion, g->mc, g->seed, x, z, -1);
@@ -2132,7 +2134,7 @@ int getVariant(StructureVariant *r, int structType, int mc, uint64_t seed,
         return 1;
 
     case Geode:
-        setDecorationSeedFromWorld(seed, cx, cz, sc.salt);
+        setDecorationSeed(seed, cx, cz, sc.salt);
         if (nextInt(sc.rarity) != 0) // rarity chance
             return 0;
         r->x = 4; // chunk offset X
@@ -2242,7 +2244,7 @@ void moveInsideHeights(Piece *list, int count, int minY, int maxY)
     int s = (maxY - minY + 1) - h;
     int offset = (s > 1) ? nextInt(s) : 0;
     int dy = minY - boxMinY + offset;
-    offsetPiecesVertically(list, count, dy);
+    offsetPiecesVertically(list, count, dy+4);// +4:To prevent getting stuck
 }
 
 static

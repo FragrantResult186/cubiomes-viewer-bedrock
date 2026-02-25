@@ -1268,7 +1268,7 @@ void QWorld::draw(QPainter& painter, int vw, int vh, qreal focusx, qreal focusz,
 
     painter.setFont(oldfont);
 
-    if (sshow[D_SLIME] && dim == 0 && blocks2pix*16 > 0.5)
+    if (sshow[D_SLIME] && dim == 0 && blocks2pix*16 > 4.5)
     {
         long x = floor(bx0 / 16), w = floor(bx1 / 16) - x + 1;
         long z = floor(bz0 / 16), h = floor(bz1 / 16) - z + 1;

@@ -58,6 +58,14 @@ QString Condition::summary(bool aligntab) const
             else
                 txts += ": " + QApplication::translate("Filter", "[script missing]");
         }
+        else if (type == F_SCALE_TO_NETHER || type == F_SCALE_TO_OVERWORLD)
+        {
+            int factor = step > 0 ? step : 8;
+            if (type == F_SCALE_TO_NETHER)
+                txts = QString("Coordinate factor x/%1").arg(factor);
+            else // type == F_SCALE_TO_OVERWORLD
+                txts = QString("Coordinate factor x*%1").arg(factor);
+        }
         else if (step)
         {
             txts += QString(" 1:%1").arg(step);
@@ -262,7 +270,7 @@ SearchThreadEnv::SearchThreadEnv()
 , seed()
 , surfdim(DIM_UNDEF)
 , octaves()
-, searchpass(PASS_FAST_48)
+, searchpass(PASS_FULL_32)
 , stop()
 , l_states()
 {
@@ -317,13 +325,15 @@ QString SearchThreadEnv::init(int mc, bool large, const ConditionTree& condtree)
 
 void SearchThreadEnv::setSeed(uint64_t seed)
 {
+    if (mc < MC_1_18)
+        seed &= MASK32;
     this->seed = seed;
     this->octaves = 0;
 }
 
 void SearchThreadEnv::init4Dim(int dim)
 {
-    uint64_t mask = (dim == DIM_OVERWORLD ? ~0ULL : MASK48);
+    uint64_t mask = (dim == DIM_OVERWORLD && mc >= MC_1_18) ? ~0ULL : MASK32;
     if (dim != g.dim || (seed & mask) != (g.seed & mask))
     {
         applySeed(&g, dim, seed);
@@ -493,12 +503,18 @@ int _testTreeAt(
 
 
     case F_SCALE_TO_NETHER:
-        pos.x = at.x / 8;
-        pos.z = at.z / 8;
+        {
+            int factor = (c.step > 0) ? c.step : 8; // default 1:8
+            pos.x = at.x / factor;
+            pos.z = at.z / factor;
+        }
         goto L_scaled_to_dim;
     case F_SCALE_TO_OVERWORLD:
-        pos.x = at.x * 8;
-        pos.z = at.z * 8;
+        {
+            int factor = (c.step > 0) ? c.step : 8; // default 1:8
+            pos.x = at.x * factor;
+            pos.z = at.z * factor;
+        }
         goto L_scaled_to_dim;
 
     L_scaled_to_dim:
@@ -562,12 +578,66 @@ int _testTreeAt(
         st = COND_OK;
         for (int b : branches)
         {
-            int sta = _testTreeAt(at, env, path, b);
+            const Condition& cb = tree->condvec[b];
+            std::vector<char> saved_branches;
+            saved_branches.swap(const_cast<ConditionTree*>(tree)->references[b]);
+            Pos bpos = at;
+            int icnt = 1;
+            int sta = testCondAt(at, env, &bpos, &icnt, &cb);
             if (*env->stop)
+            {
+                saved_branches.swap(const_cast<ConditionTree*>(tree)->references[b]);
                 return COND_FAILED;
-            if      (sta == COND_OK) { st = COND_FAILED; break; }
-            else if (sta == COND_FAILED) { st = COND_OK; break; }
-            else if (sta > st) st = sta;
+            }
+            if (sta == COND_MAYBE_POS_INVAL || sta == COND_MAYBE_POS_VALID)
+            {
+                saved_branches.swap(const_cast<ConditionTree*>(tree)->references[b]);
+                st = COND_MAYBE_POS_INVAL;
+                break;
+            }
+            else if (sta == COND_OK)
+            {
+                saved_branches.swap(const_cast<ConditionTree*>(tree)->references[b]);
+                return COND_FAILED;
+            }
+            else // sta == COND_FAILED
+            {
+                // If the child condition fails -> It is OK as a NOT logic
+                if (env->searchpass == PASS_FULL_64)
+                {
+                    Condition cb_norange = cb;
+                    cb_norange.rmax = 0;
+                    cb_norange.x1 = -30000000;
+                    cb_norange.z1 = -30000000;
+                    cb_norange.x2 =  30000000;
+                    cb_norange.z2 =  30000000;
+                    Pos bpos2 = at;
+                    int icnt2 = 1;
+                    testCondAt(at, env, &bpos2, &icnt2, &cb_norange);
+                    bpos = bpos2;
+                    //qDebug() << "NOT: spawn FAILED (out of range), actual pos=" << bpos.x << bpos.z;
+                }
+                // 'st' remains COND_OK
+            }
+            // Set coordinates in the path
+            if (path)
+                path[cb.save] = bpos;
+            std::vector<char> children = saved_branches;
+            // Restore grand-children and evaluate starting from bpos
+            saved_branches.swap(
+                const_cast<ConditionTree*>(tree)->references[b]);
+            for (int child_b : children)
+            {
+                int stc = _testTreeAt(bpos, env, path, child_b);
+                //qDebug() << "NOT: child" << child_b << "result=" << stc << "at pos=" << bpos.x << bpos.z;
+                if (*env->stop)
+                    return COND_FAILED;
+                if (stc < st)
+                    st = stc;
+                if (st == COND_FAILED)
+                    break;
+            }
+            //qDebug() << "NOT: final st=" << st;
         }
         return st;
 
@@ -696,9 +766,9 @@ int testTreeAt(
     Pos                       * path            // ok trigger positions
 )
 {
-    if (pass != PASS_FAST_48)
-    {   // do a fast check before continuing with slower checks
-        env->searchpass = PASS_FAST_48;
+    if (pass != PASS_FULL_32)
+    {   // do a fast 32-bit check before continuing with slower checks
+        env->searchpass = PASS_FULL_32;
         int st = _testTreeAt(at, env, NULL, 0);
         if (st == COND_FAILED)
             return st;
@@ -1073,6 +1143,122 @@ static int f_noise_sampler(Generator *g, int scale, int x, int y, int z, void *d
 
 
 
+/* Helper for feature cluster conditions (mineshaft, ravine, geode, lavalake).
+ * getFn     : function pointer compatible with (mc, seed, rx1,rz1,rx2,rz2, out, max) -> count
+ * varStype      : stype passed to isVariantOk (0 = skip varflags check)
+ * useViableCheck: call isViableStructurePos for Lava_Lake after gathering (lavalake only)
+ */
+static int checkFeatureCluster(
+    Pos at, SearchThreadEnv *env,
+    Pos *cent, int *imax,
+    const Condition *cond,
+    int x1, int z1, int x2, int z2,
+    int64_t rmax, Pos pc,
+    std::function<int(int, uint64_t, int, int, int, int, Pos*, int)> getFn,
+    int varStype,
+    bool useViableCheck
+)
+{
+    if (env->mc < MC_1_18)
+        env->seed &= MASK32;
+    int rx1 = x1 >> 4, rz1 = z1 >> 4;
+    int rx2 = x2 >> 4, rz2 = z2 >> 4;
+    Pos *p = getPosBuf(0);
+    int icnt, xt, zt;
+
+    if (imax && cond->count > 0)
+    {   // just check there are at least *inst (== cond->count) instances
+        *imax = icnt = getFn(env->mc, env->seed, rx1, rz1, rx2, rz2, cent, *imax);
+
+        if (varStype && cond->varflags)
+        {
+            if (!isVariantOk(cond, env, varStype, -1, &pc))
+                return COND_FAILED;
+        }
+        if (rmax)
+        {   // filter out the instances that are outside the radius
+            int j = 0;
+            for (int i = 0; i < icnt; i++)
+            {
+                int dx = cent[i].x - at.x;
+                int dz = cent[i].z - at.z;
+                int64_t rsq = dx*(int64_t)dx + dz*(int64_t)dz;
+                if (rsq < rmax)
+                    cent[j++] = cent[i];
+            }
+            *imax = icnt = j;
+        }
+        if (cond->skipref && icnt > 0)
+        {   // remove origin instance
+            for (int i = 0; i < icnt; i++)
+            {
+                if (cent[i].x == at.x && cent[i].z == at.z)
+                {
+                    cent[i] = cent[icnt-1];
+                    *imax = --icnt;
+                    break;
+                }
+            }
+        }
+        if (useViableCheck)
+        {
+            applySeed(&env->g, DIM_OVERWORLD, env->seed);
+            if (!isViableStructurePos(Lava_Lake, &env->g, pc.x, pc.z, 0))
+                return COND_FAILED;
+        }
+        if (icnt >= cond->count)
+            return COND_OK;
+    }
+    else
+    {   // we need the average position of all instances
+        icnt = getFn(env->mc, env->seed, rx1, rz1, rx2, rz2, &p[0], MAX_INSTANCES);
+
+        if (varStype && cond->varflags)
+        {
+            if (!isVariantOk(cond, env, varStype, -1, &pc))
+                return COND_FAILED;
+        }
+        if (icnt < cond->count)
+            return COND_FAILED;
+
+        xt = zt = 0;
+        int j = 0;
+        for (int i = 0; i < icnt; i++)
+        {
+            if (rmax)
+            {   // skip instances outside the radius
+                int dx = p[i].x - at.x;
+                int dz = p[i].z - at.z;
+                int64_t rsq = dx*(int64_t)dx + dz*(int64_t)dz;
+                if (rsq >= rmax)
+                    continue;
+            }
+            if (cond->skipref && p[i].x == at.x && p[i].z == at.z)
+                continue;
+            xt += p[i].x;
+            zt += p[i].z;
+            j++;
+        }
+        if (cond->count <= 0)
+        {
+            cent->x = (x1 + x2) >> 1;
+            cent->z = (z1 + z2) >> 1;
+            if (imax) *imax = 1;
+            if (j == 0)
+                return COND_OK;
+        }
+        else if (j >= cond->count)
+        {
+            cent->x = xt / j;
+            cent->z = zt / j;
+            if (imax) *imax = 1;
+            return COND_OK;
+        }
+    }
+    return COND_FAILED;
+}
+
+
 /* Tests if a condition is satisfied with 'at' as origin for a search pass.
  * If sufficiently satisfied (check return value) then:
  * when 'imax' is NULL, the center position is written to 'cent[0]'
@@ -1089,6 +1275,8 @@ testCondAt(
     const Condition           * cond            // condition to check
     )
 {
+    if (env->mc < MC_1_18)
+        env->seed &= MASK32;
     int x1, x2, z1, z2;
     int rx1, rx2, rz1, rz2, rx, rz;
     Pos pc;
@@ -1336,16 +1524,41 @@ L_qm_any:
                 {
                     continue;
                 }
-                if ((env->searchpass == PASS_FULL_64) ||
-                    (env->searchpass == PASS_FULL_32 && !finfo.dep64))
+                if (env->searchpass == PASS_FULL_32)
                 {
                     if (*env->stop) return COND_FAILED;
 
+                    if (cond->varflags)
+                    {
+                        if (st == Village)
+                        {   // try all possible village biomes to check variant
+                            int vv[] = {
+                                plains, desert, savanna, taiga, snowy_plains,
+                            };
+                            int vn = env->mc <= MC_1_13 ? 1 : sizeof(vv) / sizeof(int);
+                            int i;
+                            for (i = 0; i < vn; i++)
+                                if (isVariantOk(cond, env, st, vv[i], &pc))
+                                    break;
+                            if (i >= vn)
+                                continue;
+                        }
+                        else
+                        {
+                            if (!isVariantOk(cond, env, st, -1, &pc))
+                                continue;
+                        }
+                    }
+                    // fall through to icnt increment
+                }
+                else if (env->searchpass == PASS_FULL_64)
+                {
+                    if (*env->stop) 
+                        return COND_FAILED;
                     if (st == Village && cond->varflags)
-                    {   // we can test for abandoned villages before the
-                        // biome checks by trying each suitable biome
+                    {
                         int vv[] = {
-                            plains, desert, savanna, taiga, snowy_plains,
+                            plains, desert, savanna, taiga, snowy_taiga, snowy_plains,
                             // plains village variant covers meadows
                         };
                         int vn = env->mc <= MC_1_13 ? 1 : sizeof(vv) / sizeof(int);
@@ -1353,7 +1566,7 @@ L_qm_any:
                         for (i = 0; i < vn; i++)
                             if (isVariantOk(cond, env, st, vv[i], &pc))
                                 break;
-                        if (i >= vn) // no suitable village variants here
+                        if (i >= vn)
                             continue;
                     }
 
@@ -1412,8 +1625,8 @@ L_qm_any:
             {
                 if (env->searchpass == PASS_FULL_64)
                     return COND_FAILED;
-                if (env->searchpass == PASS_FULL_32 && !finfo.dep64)
-                    return COND_FAILED;
+                if (env->searchpass == PASS_FULL_32)
+                    return COND_MAYBE_POS_VALID;
                 return COND_MAYBE_POS_VALID;
             }
         }
@@ -1431,10 +1644,9 @@ L_qm_any:
 
             if (env->searchpass == PASS_FULL_64)
                 return COND_OK;
-            if (env->searchpass == PASS_FULL_32 && !finfo.dep64)
+            if (env->searchpass == PASS_FULL_32)
                 return COND_OK;
-            // some non-exhaustive structure clusters do not
-            // have known center positions with 48-bit seeds
+            // other passes: position not fully verified
             if (cond->count != (1+rx2-rx1) * (1+rz2-rz1))
                 return COND_MAYBE_POS_INVAL;
             return COND_MAYBE_POS_VALID;
@@ -1443,360 +1655,48 @@ L_qm_any:
 
 
     case F_MINESHAFT:
-
-        rx1 = x1 >> 4;
-        rz1 = z1 >> 4;
-        rx2 = x2 >> 4;
-        rz2 = z2 >> 4;
-
-        if (imax && cond->count > 0)
-        {   // just check there are at least *inst (== cond->count) instances
-            *imax = icnt =
-                getMineshafts(env->mc, env->seed, rx1, rz1, rx2, rz2, cent, *imax);
-            if (rmax)
-            {   // filter out the instances that are outside the radius
-                int j = 0;
-                for (int i = 0; i < icnt; i++)
-                {
-                    int dx = cent[i].x - at.x;
-                    int dz = cent[i].z - at.z;
-                    int64_t rsq = dx*(int64_t)dx + dz*(int64_t)dz;
-                    if (rsq < rmax)
-                        cent[j++] = cent[i];
-                }
-                *imax = icnt = j;
-            }
-            if (cond->skipref && icnt > 0)
-            {   // remove origin instance
-                for (int i = 0; i < icnt; i++)
-                {
-                    if (cent[i].x == at.x && cent[i].z == at.z)
-                    {
-                        cent[i] = cent[icnt-1];
-                        *imax = --icnt;
-                        break;
-                    }
-                }
-            }
-            if (icnt >= cond->count)
-                return COND_OK;
-        }
-        else
-        {   // we need the average position of all instances
-            icnt = getMineshafts(env->mc, env->seed, rx1, rz1, rx2, rz2, &p[0], MAX_INSTANCES);
-            if (icnt < cond->count)
-                return COND_FAILED;
-            xt = zt = 0;
-            int j = 0;
-            for (int i = 0; i < icnt; i++)
-            {
-                if (rmax)
-                {   // skip instances outside the radius
-                    int dx = cent[i].x - at.x;
-                    int dz = cent[i].z - at.z;
-                    int64_t rsq = dx*(int64_t)dx + dz*(int64_t)dz;
-                    if (rsq >= rmax)
-                        continue;
-                }
-                if (cond->skipref && p[i].x == at.x && p[i].z == at.z)
-                    continue;
-                xt += p[i].x;
-                zt += p[i].z;
-                j++;
-            }
-            if (cond->count <= 0)
-            {
-                cent->x = (x1 + x2) >> 1;
-                cent->z = (z1 + z2) >> 1;
-                if (imax) *imax = 1;
-                if (j == 0)
-                    return COND_OK;
-            }
-            else if (j >= cond->count)
-            {
-                cent->x = xt / j;
-                cent->z = zt / j;
-                if (imax) *imax = 1;
-                return COND_OK;
-            }
-        }
-        return COND_FAILED;
+        return checkFeatureCluster(
+            at, env, cent, imax, cond,
+            x1, z1, x2, z2, rmax, pc,
+            [](int mc, uint64_t seed, int rx1, int rz1, int rx2, int rz2, Pos *out, int max) {
+                return getMineshafts(mc, seed, rx1, rz1, rx2, rz2, out, max);
+            },
+            /*varStype=*/0, /*useViableCheck=*/false);
 
     case F_RAVINE:
-        
-        rx1 = x1 >> 4;
-        rz1 = z1 >> 4;
-        rx2 = x2 >> 4;
-        rz2 = z2 >> 4;
+        return checkFeatureCluster(
+            at, env, cent, imax, cond,
+            x1, z1, x2, z2, rmax, pc,
+            [](int mc, uint64_t seed, int rx1, int rz1, int rx2, int rz2, Pos *out, int max) {
+                return getRavines(mc, seed, rx1, rz1, rx2, rz2, out, max);
+            },
+            /*varStype=*/Ravine, /*useViableCheck=*/false);
 
-        if (imax && cond->count > 0)
-        {   // just check there are at least *inst (== cond->count) instances
-            *imax = icnt =
-                getRavines(env->mc, env->seed, rx1, rz1, rx2, rz2, cent, *imax);
-            if (cond->varflags)
-            {
-                if (!isVariantOk(cond, env, st, -1, &pc))
-                    return COND_FAILED;
-            }
-            if (rmax)
-            {   // filter out the instances that are outside the radius
-                int j = 0;
-                for (int i = 0; i < icnt; i++)
-                {
-                    int dx = cent[i].x - at.x;
-                    int dz = cent[i].z - at.z;
-                    int64_t rsq = dx*(int64_t)dx + dz*(int64_t)dz;
-                    if (rsq < rmax)
-                        cent[j++] = cent[i];
-                }
-                *imax = icnt = j;
-            }
-            if (cond->skipref && icnt > 0)
-            {   // remove origin instance
-                for (int i = 0; i < icnt; i++)
-                {
-                    if (cent[i].x == at.x && cent[i].z == at.z)
-                    {
-                        cent[i] = cent[icnt-1];
-                        *imax = --icnt;
-                        break;
-                    }
-                }
-            }
-            if (icnt >= cond->count)
-                return COND_OK;
-        }
-        else
-        {
-            icnt = getRavines(env->mc, env->seed, rx1, rz1, rx2, rz2, &p[0], MAX_INSTANCES);
-            if (cond->varflags)
-            {
-                if (!isVariantOk(cond, env, st, -1, &pc))
-                    return COND_FAILED;
-            }
-            if (icnt < cond->count)
-                return COND_FAILED;
-            xt = zt = 0;
-            int j = 0;
-            for (int i = 0; i < icnt; i++)
-            {
-                if (rmax)
-                {
-                    int dx = cent[i].x - at.x;
-                    int dz = cent[i].z - at.z;
-                    int64_t rsq = dx*(int64_t)dx + dz*(int64_t)dz;
-                    if (rsq >= rmax)
-                        continue;
-                }
-                if (cond->skipref && p[i].x == at.x && p[i].z == at.z)
-                    continue;
-                xt += p[i].x;
-                zt += p[i].z;
-                j++;
-            }
-            if (cond->count <= 0)
-            {
-                cent->x = (x1 + x2) >> 1;
-                cent->z = (z1 + z2) >> 1;
-                if (imax) *imax = 1;
-                if (j == 0)
-                    return COND_OK;
-            }
-            else if (j >= cond->count)
-            {
-                cent->x = xt / j;
-                cent->z = zt / j;
-                if (imax) *imax = 1;
-                return COND_OK;
-            }
-        }
-        return COND_FAILED;
-    
     case F_GEODE:
+        return checkFeatureCluster(
+            at, env, cent, imax, cond,
+            x1, z1, x2, z2, rmax, pc,
+            [](int mc, uint64_t seed, int rx1, int rz1, int rx2, int rz2, Pos *out, int max) {
+                return getGeodes(mc, seed, rx1, rz1, rx2, rz2, out, max);
+            },
+            /*varStype=*/0, /*useViableCheck=*/false);
 
-        rx1 = x1 >> 4;
-        rz1 = z1 >> 4;
-        rx2 = x2 >> 4;
-        rz2 = z2 >> 4;
-
-        if (imax && cond->count > 0)
-        {   // just check there are at least *inst (== cond->count) instances
-            *imax = icnt =
-                getGeodes(env->mc, env->seed, rx1, rz1, rx2, rz2, cent, *imax);
-            if (rmax)
-            {   // filter out the instances that are outside the radius
-                int j = 0;
-                for (int i = 0; i < icnt; i++)
-                {
-                    int dx = cent[i].x - at.x;
-                    int dz = cent[i].z - at.z;
-                    int64_t rsq = dx*(int64_t)dx + dz*(int64_t)dz;
-                    if (rsq < rmax)
-                        cent[j++] = cent[i];
-                }
-                *imax = icnt = j;
-            }
-            if (cond->skipref && icnt > 0)
-            {   // remove origin instance
-                for (int i = 0; i < icnt; i++)
-                {
-                    if (cent[i].x == at.x && cent[i].z == at.z)
-                    {
-                        cent[i] = cent[icnt-1];
-                        *imax = --icnt;
-                        break;
-                    }
-                }
-            }
-            if (icnt >= cond->count)
-                return COND_OK;
-        }
-        else
-        {   // we need the average position of all instances
-            icnt = getGeodes(env->mc, env->seed, rx1, rz1, rx2, rz2, &p[0], MAX_INSTANCES);
-            if (icnt < cond->count)
-                return COND_FAILED;
-            xt = zt = 0;
-            int j = 0;
-            for (int i = 0; i < icnt; i++)
-            {
-                if (rmax)
-                {   // skip instances outside the radius
-                    int dx = cent[i].x - at.x;
-                    int dz = cent[i].z - at.z;
-                    int64_t rsq = dx*(int64_t)dx + dz*(int64_t)dz;
-                    if (rsq >= rmax)
-                        continue;
-                }
-                if (cond->skipref && p[i].x == at.x && p[i].z == at.z)
-                    continue;
-                xt += p[i].x;
-                zt += p[i].z;
-                j++;
-            }
-            if (cond->count <= 0)
-            {
-                cent->x = (x1 + x2) >> 1;
-                cent->z = (z1 + z2) >> 1;
-                if (imax) *imax = 1;
-                if (j == 0)
-                    return COND_OK;
-            }
-            else if (j >= cond->count)
-            {
-                cent->x = xt / j;
-                cent->z = zt / j;
-                if (imax) *imax = 1;
-                return COND_OK;
-            }
-        }
-        return COND_FAILED;
-    
     case F_LAVALAKE:
-        
-        rx1 = x1 >> 4;
-        rz1 = z1 >> 4;
-        rx2 = x2 >> 4;
-        rz2 = z2 >> 4;
-
-        if (imax && cond->count > 0)
-        {   // just check there are at least *inst (== cond->count) instances
-            int isDesert = 0;
-            if (env->mc < MC_1_18)
-            {
-               int biomeid = getBiomeAt(&env->g, 4, pc.x>>2, 317>>2, pc.z>>2);
-               isDesert = (biomeid == desert) || (biomeid == desert_hills);
-            }
-            *imax = icnt =
-                getLavaLakes(env->mc, env->seed, rx1, rz1, rx2, rz2, cent, *imax, isDesert);
-            if (cond->varflags)
-            {
-                if (!isVariantOk(cond, env, st, -1, &pc))
-                    return COND_FAILED;
-            }
-            if (rmax)
-            {   // filter out the instances that are outside the radius
-                int j = 0;
-                for (int i = 0; i < icnt; i++)
-                {
-                    int dx = cent[i].x - at.x;
-                    int dz = cent[i].z - at.z;
-                    int64_t rsq = dx*(int64_t)dx + dz*(int64_t)dz;
-                    if (rsq < rmax)
-                        cent[j++] = cent[i];
-                }
-                *imax = icnt = j;
-            }
-            if (cond->skipref && icnt > 0)
-            {   // remove origin instance
-                for (int i = 0; i < icnt; i++)
-                {
-                    if (cent[i].x == at.x && cent[i].z == at.z)
-                    {
-                        cent[i] = cent[icnt-1];
-                        *imax = --icnt;
-                        break;
-                    }
-                }
-            }
-            applySeed(&env->g, DIM_OVERWORLD, env->seed);
-            int id = isViableStructurePos(Lava_Lake, &env->g, pc.x, pc.z, 0);
-            if (!id)
-                return COND_FAILED;
-            if (icnt >= cond->count)
-                return COND_OK;
-        }
-        else
+    {
+        int isDesert = 0;
+        if (env->mc < MC_1_18)
         {
-            int isDesert = 0;
-            if (env->mc < MC_1_18)
-            {
-               int biomeid = getBiomeAt(&env->g, 4, pc.x>>2, 317>>2, pc.z>>2);
-               isDesert = (biomeid == desert) || (biomeid == desert_hills);
-            }
-            icnt = getLavaLakes(env->mc, env->seed, rx1, rz1, rx2, rz2, &p[0], MAX_INSTANCES, isDesert);
-            if (cond->varflags)
-            {
-                if (!isVariantOk(cond, env, st, -1, &pc))
-                    return COND_FAILED;
-            }
-            if (icnt < cond->count)
-                return COND_FAILED;
-            xt = zt = 0;
-            int j = 0;
-            for (int i = 0; i < icnt; i++)
-            {
-                if (rmax)
-                {
-                    int dx = cent[i].x - at.x;
-                    int dz = cent[i].z - at.z;
-                    int64_t rsq = dx*(int64_t)dx + dz*(int64_t)dz;
-                    if (rsq >= rmax)
-                        continue;
-                }
-                if (cond->skipref && p[i].x == at.x && p[i].z == at.z)
-                    continue;
-                xt += p[i].x;
-                zt += p[i].z;
-                j++;
-            }
-            if (cond->count <= 0)
-            {
-                cent->x = (x1 + x2) >> 1;
-                cent->z = (z1 + z2) >> 1;
-                if (imax) *imax = 1;
-                if (j == 0)
-                    return COND_OK;
-            }
-            else if (j >= cond->count)
-            {
-                cent->x = xt / j;
-                cent->z = zt / j;
-                if (imax) *imax = 1;
-                return COND_OK;
-            }
+            int biomeid = getBiomeAt(&env->g, 4, pc.x>>2, 317>>2, pc.z>>2);
+            isDesert = (biomeid == desert) || (biomeid == desert_hills);
         }
-        return COND_FAILED;
+        return checkFeatureCluster(
+            at, env, cent, imax, cond,
+            x1, z1, x2, z2, rmax, pc,
+            [isDesert](int mc, uint64_t seed, int rx1, int rz1, int rx2, int rz2, Pos *out, int max) {
+                return getLavaLakes(mc, seed, rx1, rz1, rx2, rz2, out, max, isDesert);
+            },
+            /*varStype=*/Lava_Lake, /*useViableCheck=*/true);
+    }
 
     case F_SPAWN:
 
@@ -2220,8 +2120,6 @@ L_qm_any:
         cent->x = (x1 + x2) >> 1;
         cent->z = (z1 + z2) >> 1;
         if (imax) *imax = 1;
-        if (env->searchpass == PASS_FAST_48)
-            return COND_MAYBE_POS_VALID;
         if (env->searchpass == PASS_FULL_32)
         {
             if (env->mc < MC_1_13 || cond->type != F_BIOME_256_OTEMP)
@@ -2286,7 +2184,7 @@ L_qm_any:
         cent->x = (x1 + x2) >> 1;
         cent->z = (z1 + z2) >> 1;
         if (imax) *imax = 1;
-        if (env->searchpass == PASS_FAST_48)
+        if (env->searchpass == PASS_FULL_32)
             return COND_MAYBE_POS_VALID;
         // the Nether and End require only the 48-bit seed
         // (except voronoi uses the full 64-bits)

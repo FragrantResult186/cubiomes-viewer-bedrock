@@ -692,7 +692,7 @@ enum
 
 enum
 {
-    PASS_FAST_48,       // only do fast checks that do not require biome gen
+    PASS_FAST_32,       // only do fast checks that do not require biome gen
     PASS_FULL_32,       // include possible biome checks for 32-bit seeds
     PASS_FULL_64,       // run full test on a 64-bit seed
 };

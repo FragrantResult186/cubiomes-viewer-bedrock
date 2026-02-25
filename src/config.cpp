@@ -48,7 +48,7 @@ void ExtGenConfig::save(QSettings& settings)
     for (int st = 0; st < FEATURE_NUM; st++)
     {
         uint64_t salt = salts[st];
-        if (salt <= MASK48)
+        if (salt <= MASK32)
             settings.setValue(QString("world/salt_") + struct2str(st), (qulonglong)salt);
     }
 }
@@ -304,7 +304,7 @@ int MapConfig::getTileSize(int opt) const
         return 1280 * 16;
     if (opt == D_GEODE || opt == D_LAVALAKE)
         return 128 * 16;
-     if (opt == D_GATEWAY)
+    if (opt == D_GATEWAY)
         return 64 * 16;
     return 512 * 16;
 }
@@ -513,7 +513,7 @@ uint64_t Gen48Config::estimateSeedCnt(uint64_t slist48len)
     }
     else
     {
-        cnt = MASK48 + 1;
+        cnt = MASK32 + 1;
     }
 
     if (mode != GEN48_NONE)
@@ -524,7 +524,7 @@ uint64_t Gen48Config::estimateSeedCnt(uint64_t slist48len)
         if (cnt > 0 && n < PRECOMPUTE48_BUFSIZ * sizeof(uint64_t) && n / cnt == w*h)
             cnt = n;
         else
-            cnt = MASK48 + 1;
+            cnt = MASK32 + 1;
     }
     return cnt;
 }

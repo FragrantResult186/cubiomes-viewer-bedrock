@@ -38,9 +38,15 @@ QTreeWidgetItem *setConditionTreeItems(ConditionTree& ctree, int node, int64_t s
         item->setText(0, summary.mid(1, 2));
         item->setText(1, summary.mid(5));
 
-        if ((p.x == -1 && p.z == -1) || c.type == F_LOGIC_NOT)
+        if (p.x == -1 && p.z == -1)
             posval = false;
-        if (posval)
+        if (c.type == F_LOGIC_NOT)
+        {   // NOT node hides own coords
+            item->setText(2, "");
+            item->setText(3, "");
+            item->setText(4, "");
+        }
+        else if (posval)
         {
             const FilterInfo& finfo = g_filterinfo.list[c.type];
             double dist = sqrt((double)p.x*p.x + (double)p.z*p.z);
