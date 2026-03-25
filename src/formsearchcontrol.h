@@ -114,6 +114,9 @@ public:
 
     void setSearchMode(int mode);
 
+    bool is32bitMode() const;
+    void updateTop32Column();
+
     bool getSeed(int row, uint64_t *seed);
 
 signals:

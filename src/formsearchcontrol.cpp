@@ -529,10 +529,27 @@ void FormSearchControl::on_buttonSearchHelp_clicked()
     mb->show();
 }
 
+bool FormSearchControl::is32bitMode() const
+{
+    int type = ui->comboSearchType->currentData().toInt();
+    if (type == SEARCH_32ONLY)
+        return true;
+    if (parent && !parent->is64bitSeedVersion())
+        return true;
+    return false;
+}
+
+void FormSearchControl::updateTop32Column()
+{
+    bool hide = is32bitMode();
+    ui->results->setColumnHidden(SeedTableModel::COL_TOP32, hide);
+}
+
 void FormSearchControl::on_comboSearchType_currentIndexChanged(int)
 {
     int type = ui->comboSearchType->currentData().toInt();
     ui->buttonMore->setEnabled(type == SEARCH_INC || type == SEARCH_LIST);
+    updateTop32Column();
     searchProgressReset();
 }
 
@@ -723,6 +740,11 @@ void FormSearchControl::searchProgressReset()
             cnt = 0;
         }
     }
+    if (is32bitMode() && (searchtype == SEARCH_32ONLY ||
+        (searchtype == SEARCH_INC && cnt == ~(uint64_t)0)))
+    {
+        cnt = (uint64_t)MASK32 + 1; // = 4294967296
+    }
 
     if (cnt)
         fmt += QString::asprintf("0 / %" PRIu64 " (0.00%%)", cnt);
@@ -742,6 +764,12 @@ void FormSearchControl::updateSearchProgress(uint64_t prog, uint64_t end, int64_
 
     if (!end)
         return;
+    int searchtype = ui->comboSearchType->currentData().toInt();
+    if (is32bitMode() && (searchtype == SEARCH_32ONLY ||
+        (searchtype == SEARCH_INC && end == ~(uint64_t)0)))
+    {
+        end = (uint64_t)MASK32 + 1; // 4294967296
+    }
 
     double value = (double)prog / end;
     int v = (int) floor(10000 * value);
@@ -750,7 +778,6 @@ void FormSearchControl::updateSearchProgress(uint64_t prog, uint64_t end, int64_
                 "%" PRIu64 " / %" PRIu64 " (%d.%02d%%)",
                 prog, end, v / 100, v % 100
                 );
-    int searchtype = ui->comboSearchType->currentData().toInt();
     if (searchtype == SEARCH_LIST)
     {
         if (!slist64fnam.isEmpty())

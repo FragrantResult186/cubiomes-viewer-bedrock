@@ -612,6 +612,7 @@ struct /*__attribute__((packed))*/ Condition
         VAR_BASEMENT    = 0x0020, // igloo with basement
         VAR_MEGARAVINE  = 0x0040, // mega ravine
         VAR_UNDERGROUND = 0x0080, // underground portal
+        VAR_BLACKSMITH  = 0x0100, // has blacksmith (preVillage)
     };
     enum { // min/max
         // legacy 0:min<= 1:max>= 2:min>= 3:max<=

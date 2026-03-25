@@ -208,6 +208,7 @@ ConditionDialog::ConditionDialog(FormConditions *parent, MapView *mapview, Confi
     ui->scrollBiomes->setStyleSheet(tristyle);
     ui->scrollNoise->setStyleSheet(tristyle);
     ui->checkAbandoned->setStyleSheet(tristyle);
+    ui->checkBlacksmith->setStyleSheet(tristyle);
     ui->checkEndShip->setStyleSheet(tristyle);
     ui->checkBasement->setStyleSheet(tristyle);
     ui->checkMegaRavine->setStyleSheet(tristyle);
@@ -335,7 +336,6 @@ ConditionDialog::ConditionDialog(FormConditions *parent, MapView *mapview, Confi
         const FilterInfo &ft = g_filterinfo.list[cond.type];
 
         ui->checkEnabled->setChecked(!(cond.meta & Condition::DISABLED));
-        // C文字列扱いにすると末尾のヌルが切られる
         ui->lineSummary->setText(QString::fromLocal8Bit(cond.text));
         ui->lineSummary->setPlaceholderText(QApplication::translate("Filter", ft.name));
 
@@ -453,6 +453,8 @@ ConditionDialog::ConditionDialog(FormConditions *parent, MapView *mapview, Confi
             int idx = cb->sp - g_start_pieces;
             cb->setChecked(cond.varstart & (1ULL << idx));
         }
+
+        ui->checkBlacksmith->setCheckState(totristate(cond.varflags, Condition::VAR_BLACKSMITH));
 
         int *lim = (int*) &cond.limok[0][0];
         if (lim[0] == 0 && !memcmp(lim, lim + 1, (6 * 4 - 1) * sizeof(int)))
@@ -640,8 +642,13 @@ void ConditionDialog::updateMode()
     else if (filterindex == F_VILLAGE)
     {
         ui->stackedWidget->setCurrentWidget(ui->pageVillage);
-        ui->checkStartPieces->setEnabled(wi.mc >= MC_1_14);
-        ui->checkAbandoned->setEnabled(filterindex == F_VILLAGE && wi.mc >= MC_1_10);
+        bool pre111 = wi.mc < MC_1_11;
+        // 1.11以上ではabandoned/startpieceのUIを非表示
+        ui->groupBoxVillage->setVisible(!pre111);
+        ui->checkStartPieces->setEnabled(!pre111);
+        ui->checkAbandoned->setEnabled(!pre111);
+        // houseリスト（blacksmith）は1.11未満のみ表示
+        ui->groupBoxHouseList->setVisible(pre111);
     }
     else if (filterindex == F_FORTRESS)
     {
@@ -1224,6 +1231,8 @@ void ConditionDialog::onAccept()
             continue;
         c.varstart |= 1ULL << (cb->sp - g_start_pieces);
     }
+
+    c.varflags |= tristateFlags(ui->checkBlacksmith, Condition::VAR_BLACKSMITH);
 
     getClimateLimits(c.limok, c.limex);
 

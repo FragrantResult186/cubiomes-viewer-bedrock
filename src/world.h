@@ -17,11 +17,12 @@ struct Level;
 
 struct VarPos
 {
-    VarPos(Pos p, int type) : p(p),type(type),v(),pieces() {}
+    VarPos(Pos p, int type) : p(p),type(type),v(),pieces(),portalFrames() {}
     Pos p;
     int type;
     StructureVariant v;
     std::vector<Piece> pieces;
+    std::vector<StrongholdPortalFrame> portalFrames;
 
     QStringList detail() const;
 };
@@ -114,10 +115,10 @@ struct Level
 
 struct PosElement
 {
-    PosElement(Pos p_) : next(), p(p_) {}
+    PosElement(const VarPos& vp_) : next(), vp(vp_) {}
     ~PosElement() { delete next; next = nullptr; }
     QAtomicPointer<PosElement> next;
-    Pos p;
+    VarPos vp;
 };
 
 struct Shape

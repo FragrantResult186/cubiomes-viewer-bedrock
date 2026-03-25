@@ -818,6 +818,8 @@ void MainWindow::on_comboBoxMC_currentIndexChanged(int)
     {
         updateSeedInputMode();
         updateMapSeed();
+        formControl->updateTop32Column();
+        formControl->searchProgressReset();
     }
 }
 void MainWindow::on_seedEdit_editingFinished()

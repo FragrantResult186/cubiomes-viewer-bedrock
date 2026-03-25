@@ -142,6 +142,17 @@ QStringList VarPos::detail() const
         if (wart)
             sinfo.append(QString::asprintf("nether_wart=%d", wart));
     }
+    else if (type == Stronghold)
+    {
+        sinfo.append(QString::asprintf("size=%zu", pieces.size()));
+        int eyecnt = 0;
+        for (const StrongholdPortalFrame& frame : portalFrames)
+            eyecnt += frame.hasEye != 0;
+        if (!portalFrames.empty())
+        {
+            sinfo.append(QString::asprintf("eyes=%d", eyecnt));
+        }
+    }
     else if (type == Igloo)
     {
         if (v.basement)
@@ -160,6 +171,21 @@ QStringList VarPos::detail() const
             sinfo.append("cracked");
     }
     return sinfo;
+}
+
+static void populateStrongholdLayout(VarPos *vp, WorldInfo wi)
+{
+    Piece pieces[1024];
+    int n = getStrongholdPieces(pieces, sizeof(pieces)/sizeof(pieces[0]),
+        wi.mc, wi.seed, vp->p.x >> 4, vp->p.z >> 4);
+    if (!n)
+        return;
+
+    vp->pieces.assign(pieces, pieces+n);
+
+    StrongholdPortalFrame frames[12];
+    int nf = getStrongholdPortalFrames(frames, pieces, n, wi.seed);
+    vp->portalFrames.assign(frames, frames+nf);
 }
 
 
@@ -203,6 +229,22 @@ void getStructs(std::vector<VarPos> *out, const StructureConfig sconf,
         setupGenerator(&g, wi.mc, wi.large);
         applySeed(&g, dim, wi.seed);
         initSurfaceNoise(&sn, dim, wi.seed);
+    }
+
+    if (sconf.structType == Stronghold)// village sh
+    {
+        StrongholdIter sh = {};
+        while (nextVillageStronghold(&sh, &g) > 0)
+        {
+            Pos p = sh.pos;
+            if (p.x < x0 || p.x >= x1 || p.z < z0 || p.z >= z1)
+                continue;
+            VarPos vp = VarPos(p, sconf.structType);
+            if (!nogen)
+                populateStrongholdLayout(&vp, wi);
+            out->push_back(vp);
+        }
+        //return;
     }
 
     for (int i = si0; i <= si1; i++)
@@ -259,11 +301,27 @@ void getStructs(std::vector<VarPos> *out, const StructureConfig sconf,
                 {
                     id = getBiomeAt(&g, 4, p.x>>2, 0, p.z>>2);
                 }
+                else if (sconf.structType == Lava_Lake)
+                {
+                    id = getBiomeAt(&g, 4, p.x>>2, 0, p.z>>2);
+                }
                 else if (sconf.structType == Fortress)
                 {
                     int n = getFortressPieces(pieces, sizeof(pieces)/sizeof(pieces[0]),
                         wi.mc, wi.seed, p.x >> 4, p.z >> 4);
                     vp.pieces.assign(pieces, pieces+n);
+                }
+                else if (sconf.structType == Stronghold)
+                {
+                    int n = getStrongholdPieces(pieces, sizeof(pieces)/sizeof(pieces[0]),
+                        wi.mc, wi.seed, p.x >> 4, p.z >> 4);
+                    if (n)
+                    {
+                        vp.pieces.assign(pieces, pieces+n);
+                        StrongholdPortalFrame frames[12];
+                        int nf = getStrongholdPortalFrames(frames, pieces, n, wi.seed);
+                        vp.portalFrames.assign(frames, frames+nf);
+                    }
                 }
                 else if (g.mc >= MC_1_18)
                 {
@@ -1142,8 +1200,10 @@ struct SpawnStronghold : public Scheduled
         {
             if (world->isdel)
                 return;
+            VarPos vp(sh.pos, Stronghold);
+            populateStrongholdLayout(&vp, wi);
             PosElement *shp;
-            (*shpp) = shp = new PosElement(sh.pos);
+            (*shpp) = shp = new PosElement(vp);
             shpp = &shp->next;
         }
 
@@ -1516,6 +1576,20 @@ void QWorld::draw(QPainter& painter, int vw, int vh, qreal focusx, qreal focusz,
                             painter.drawRect(spawner);
                         }
                     }
+
+                    if (vp.type == Stronghold) {
+                        painter.save();
+                        for (const auto& frame : vp.portalFrames) {
+                            QRectF outer(vw/2.0 + (frame.pos.x - focusx) * blocks2pix, 
+                                         vh/2.0 + (frame.pos.z - focusz) * blocks2pix, 
+                                         blocks2pix, blocks2pix);
+                            // painter.setPen({QColor(240, 214, 120, 230), 0});
+                            // painter.setBrush(QColor(72, 124, 76, 72));
+                            painter.drawRect(outer);
+                        }
+                        painter.restore();
+                        painter.setPen({QColor(192, 0, 0, 128), 0});
+                    }
                 }
 
                 QPointF d = QPointF(x, y);
@@ -1608,7 +1682,8 @@ void QWorld::draw(QPainter& painter, int vw, int vh, qreal focusx, qreal focusz,
         std::vector<QPainter::PixmapFragment> frags;
         do
         {
-            Pos p = (*shs).p;
+            const VarPos& vp = (*shs).vp;
+            Pos p = vp.p;
             qreal x = vw/2.0 + (p.x - focusx) * blocks2pix;
             qreal y = vh/2.0 + (p.z - focusz) * blocks2pix;
             QPointF d = QPointF(x, y);
@@ -1621,7 +1696,7 @@ void QWorld::draw(QPainter& painter, int vw, int vh, qreal focusx, qreal focusz,
                 if (r.contains(selx, selz))
                 {
                     selopt = D_STRONGHOLD;
-                    selvp = VarPos(p, -1);
+                    selvp = vp;
                 }
             }
         }

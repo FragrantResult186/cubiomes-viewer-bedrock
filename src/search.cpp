@@ -954,7 +954,10 @@ static bool isVariantOk(const Condition *c, SearchThreadEnv *e, int stype, int v
     else if (stype == Ravine)
     {
         if (!(c->varflags & Condition::VAR_MEGARAVINE)) return true;
-        getVariant(&sv, stype, e->mc, e->seed, pos->x, pos->z, varbiome);
+        int cx = pos->x >> 4;
+        int cz = pos->z >> 4;
+        Pos chunkPos = {cx * 16, cz * 16};
+        getVariant(&sv, stype, e->mc, e->seed, chunkPos.x, chunkPos.z, varbiome);
         return (c->varflags & Condition::VAR_NOT ? !sv.giant : sv.giant);
     }
     else
@@ -1533,7 +1536,7 @@ L_qm_any:
                         if (st == Village)
                         {   // try all possible village biomes to check variant
                             int vv[] = {
-                                plains, desert, savanna, taiga, snowy_plains,
+                                plains, desert, savanna, taiga, snowy_taiga, snowy_plains,
                             };
                             int vn = env->mc <= MC_1_13 ? 1 : sizeof(vv) / sizeof(int);
                             int i;
@@ -1561,7 +1564,7 @@ L_qm_any:
                             plains, desert, savanna, taiga, snowy_taiga, snowy_plains,
                             // plains village variant covers meadows
                         };
-                        int vn = env->mc <= MC_1_13 ? 1 : sizeof(vv) / sizeof(int);
+                        int vn = env->mc <= MC_1_10 ? 1 : sizeof(vv) / sizeof(int);
                         int i;
                         for (i = 0; i < vn; i++)
                             if (isVariantOk(cond, env, st, vv[i], &pc))
@@ -1592,6 +1595,21 @@ L_qm_any:
                         {
                             continue;
                         }
+                    }
+                }
+
+                // Blacksmith filter (Village, mc < MC_1_11 only)
+                if (cond->type == F_VILLAGE && env->mc < MC_1_11 &&
+                    env->searchpass == PASS_FULL_64)
+                {
+                    if (cond->varflags & Condition::VAR_BLACKSMITH)
+                    {
+                        int houses[HOUSE_NUM];
+                        getHouseList(houses, env->seed, pc.x >> 4, pc.z >> 4);
+                        // Blacksmith is index 7 in house list
+                        bool hasBlacksmith = houses[7] > 0;
+                        bool wantBlacksmith = !(cond->varflags & Condition::VAR_NOT);
+                        if (hasBlacksmith != wantBlacksmith) continue;
                     }
                 }
 
@@ -1664,13 +1682,30 @@ L_qm_any:
             /*varStype=*/0, /*useViableCheck=*/false);
 
     case F_RAVINE:
-        return checkFeatureCluster(
-            at, env, cent, imax, cond,
-            x1, z1, x2, z2, rmax, pc,
-            [](int mc, uint64_t seed, int rx1, int rz1, int rx2, int rz2, Pos *out, int max) {
-                return getRavines(mc, seed, rx1, rz1, rx2, rz2, out, max);
-            },
-            /*varStype=*/Ravine, /*useViableCheck=*/false);
+    {
+        int rx1 = x1 >> 4, rz1 = z1 >> 4, rx2 = x2 >> 4, rz2 = z2 >> 4;
+        Pos *p = getPosBuf(0);
+        int icnt = getRavines(env->mc, env->seed, rx1, rz1, rx2, rz2, p, MAX_INSTANCES);
+        int matched = 0;
+        for (int i = 0; i < icnt; i++) {
+            if (rmax) {
+                int dx = p[i].x - at.x, dz = p[i].z - at.z;
+                if (dx*(int64_t)dx + dz*(int64_t)dz >= rmax) continue;
+            }
+            if (cond->varflags & Condition::VAR_MEGARAVINE) {
+                StructureVariant sv;
+                getVariant(&sv, Ravine, env->mc, env->seed, p[i].x, p[i].z, -1);
+                bool isgiant = sv.giant;
+                bool wantgiant = !(cond->varflags & Condition::VAR_NOT);
+                if (isgiant != wantgiant) continue;
+            }
+            matched++;
+            if (cent && matched == 1) *cent = p[i];
+        }
+        if (imax) *imax = matched;
+        if (matched >= cond->count) return COND_OK;
+        return COND_FAILED;
+    }
 
     case F_GEODE:
         return checkFeatureCluster(

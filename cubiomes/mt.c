@@ -28,8 +28,14 @@ typedef struct MTState_ MTState;
 
 #ifdef _MSC_VER
 __declspec(thread) static MTState state;
+__declspec(thread) uint64_t mt_ws = (uint64_t)-1;
+__declspec(thread) int mt_a;
+__declspec(thread) int mt_b;
 #else
 static __thread MTState state;
+__thread uint64_t mt_ws = (uint64_t)-1;
+__thread int mt_a;
+__thread int mt_b;
 #endif
 
 #define M32(x) ((x) & 0x80000000)
@@ -97,4 +103,28 @@ uint32_t mt_next()
   }
   
   return temper(generate());
+}
+
+void mt_get_state(MTRngState *out)
+{
+  size_t i;
+  for (i = 0; i < SIZE; i++)
+    out->MT[i] = state.MT[i];
+  out->index = state.index;
+  out->index_fast = state.index_fast;
+  out->ws = mt_ws;
+  out->a = mt_a;
+  out->b = mt_b;
+}
+
+void mt_set_state(const MTRngState *in)
+{
+  size_t i;
+  for (i = 0; i < SIZE; i++)
+    state.MT[i] = in->MT[i];
+  state.index = in->index;
+  state.index_fast = in->index_fast;
+  mt_ws = in->ws;
+  mt_a = in->a;
+  mt_b = in->b;
 }

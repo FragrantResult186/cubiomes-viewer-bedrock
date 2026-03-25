@@ -431,6 +431,44 @@ enum
     END_CITY_PIECES_MAX = 421
 };
 
+/* Generate the structure pieces of a Stronghold. The maximum number of pieces
+ * that are generated is limited to 'n'. A buffer length of around 512 should
+ * be sufficient in practice.
+ */
+int getStrongholdPieces(Piece *list, int n, int mc, uint64_t seed, int chunkX, int chunkZ);
+enum
+{   // Stronghold piece types
+    SH_START,
+    SH_CORRIDOR,
+    SH_PRISON_HALL,
+    SH_LEFT_TURN,
+    SH_RIGHT_TURN,
+    SH_ROOM_CROSSING,
+    SH_STAIRS,
+    SH_SPIRAL_STAIRCASE,
+    SH_FIVE_WAY_CROSSING,
+    SH_CHEST_CORRIDOR,
+    SH_LIBRARY,
+    SH_PORTAL_ROOM,
+    SH_SMALL_CORRIDOR,
+    SH_PIECES_MAX = 512,
+    SH_WEIGHT_TYPES = 11,
+};
+
+STRUCT(StrongholdPortalFrame)
+{
+    Pos3 pos;
+    int frameId;
+    uint8_t hasEye;
+};
+
+/* Find the portal frame positions and eye states for the first Portal Room in
+ * a generated stronghold layout.
+ * Returns 12 on success, or 0 if no Portal Room was found.
+ */
+int getStrongholdPortalFrames(StrongholdPortalFrame *frames,
+        const Piece *list, int count, uint64_t seed);
+
 /* Generate the structure pieces of a Nether Fortress. The maximum number of
  * pieces that are generated is limited to 'n'. A buffer length of around 400
  * should be sufficient in practice, but a fortress can in theory contain many
@@ -456,10 +494,6 @@ enum
     FORTRESS_END,
     PIECE_COUNT,
 };
-
-static void moveBelowSeaLevel(Piece *list, int count, int seaLevel, int minWorldHeight, int offset);
-static void moveInsideHeights(Piece *list, int count, int minY, int maxY);
-static void offsetPiecesVertically(Piece *list, int count, int dy);
 
 
 int getEndGatewayPos(uint64_t seed, EndNoise en, SurfaceNoise sn, int chunkX, int chunkZ, Pos *pos);
@@ -909,4 +943,3 @@ int isVillageChunk(StructureConfig config, uint64_t seed, int chunkX, int chunkZ
 #endif
 
 #endif // FINDERS_H_
-

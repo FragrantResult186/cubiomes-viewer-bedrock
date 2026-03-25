@@ -126,9 +126,9 @@ private slots:
     void onStyleChanged(int style);
     void onDockFloating(bool floating);
     void updateSeedInputMode();
-    bool is64bitSeedVersion() const;
 
 public:
+    bool is64bitSeedVersion() const;
     Ui::MainWindow *ui;
     QDockWidget *dock;
     MapView *mapView;

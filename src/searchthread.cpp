@@ -505,11 +505,10 @@ void SearchMaster::preSearch()
         }
         else
         {
-            int32_t s0 = (int32_t)sstart;
-            seed = (uint64_t)(uint32_t)s0;
-            scnt = (uint64_t)INT32_MAX - (uint32_t)s0 + 1;
-            smax = (uint64_t)INT32_MAX;
-            prog = (uint64_t)((int64_t)s0 - (int64_t)INT32_MIN);
+            prog = seed = sstart;
+            scnt = smax = MASK32;
+            if (seed > smax)
+                isdone = true;
         }
     }
 
