@@ -251,8 +251,8 @@ int getStructurePos(int structureType, int mc, uint64_t seed, int regX, int regZ
             setFortressSeed(seed, cx, cz);
             skipNextN(1); 
             if (nextInt(3) != 0) return 0;
-            pos->x = ((cx & ~15) + nextInt(sconf.chunkRange) + 4) << 4;
-            pos->z = ((cz & ~15) + nextInt(sconf.chunkRange) + 4) << 4;
+            pos->x = (((cx & ~15) + nextInt(sconf.chunkRange) + 4) << 4)+11;
+            pos->z = (((cz & ~15) + nextInt(sconf.chunkRange) + 4) << 4)+11;
             return 1;
         }
 
@@ -3612,8 +3612,11 @@ void extendFortressPiece(PieceEnv *env, Piece *p)
         extendFortress(env, p, 1, 0,  0, 1);
     } else if (p->type == CORRIDOR_T_CROSSING) {
         int h = (p->rot == 0 || p->rot == 3) ? 5 : 1;
-        extendFortress(env, p, h, 0, -1, nextInt(8) != 0);
-        extendFortress(env, p, h, 0,  1, nextInt(8) != 0);
+        // avoid rng shift from recursion
+        int a = nextInt(8);
+        int b = nextInt(8);
+        extendFortress(env, p, h, 0, -1, a != 0);
+        extendFortress(env, p, h, 0,  1, b != 0);
     } else if (p->type == CORRIDOR_NETHER_WART) {
         extendFortress(env, p, 5, 3,  0, 1);
         extendFortress(env, p, 5, 11, 0, 1);
