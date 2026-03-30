@@ -1044,6 +1044,7 @@ int isSpawnBiome(int biome_id) {
     switch (biome_id) {
         case forest:
         case plains:
+        case taiga:
         case taiga_hills:
         case wooded_hills:
         case jungle_hills:
