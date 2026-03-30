@@ -231,7 +231,7 @@ void getStructs(std::vector<VarPos> *out, const StructureConfig sconf,
         initSurfaceNoise(&sn, dim, wi.seed);
     }
 
-    if (sconf.structType == Stronghold)// village sh
+    if (!nogen && sconf.structType == Stronghold)// village sh
     {
         StrongholdIter sh = {};
         while (nextVillageStronghold(&sh, &g) > 0)
@@ -240,8 +240,7 @@ void getStructs(std::vector<VarPos> *out, const StructureConfig sconf,
             if (p.x < x0 || p.x >= x1 || p.z < z0 || p.z >= z1)
                 continue;
             VarPos vp = VarPos(p, sconf.structType);
-            if (!nogen)
-                populateStrongholdLayout(&vp, wi);
+            populateStrongholdLayout(&vp, wi);
             out->push_back(vp);
         }
         //return;
@@ -281,7 +280,14 @@ void getStructs(std::vector<VarPos> *out, const StructureConfig sconf,
                     continue;
                 Piece pieces[1024];
 
-                if (sconf.structType == End_City)
+                if (sconf.structType == Village && wi.mc <= MC_1_10)
+                {
+                    int n = getPreVillagePieces(pieces, sizeof(pieces)/sizeof(pieces[0]),
+                        wi.seed, p.x >> 4, p.z >> 4);
+                    if (n)
+                        vp.pieces.assign(pieces, pieces+n);
+                }
+                else if (sconf.structType == End_City)
                 {
                     int y = isViableEndCityTerrain(&g, &sn, p.x, p.z);
                     if (!y)
@@ -525,8 +531,8 @@ void Quad::run()
 
     if (pixs > 0)
     {
-        if ((lopt.mode == LOPT_STRUCTS && dim == DIM_OVERWORLD) ||
-            (g->mc < MC_1_18 && scale > 256 && dim == DIM_OVERWORLD))
+        if ((lopt.mode == LOPT_STRUCTS) ||
+            (g->mc < MC_1_18 && scale > 256))
         {
             img = new QImage();
             done = true;
@@ -642,13 +648,13 @@ void Level::init4map(QWorld *w, int pix, int layerscale)
 
     if (lopt.mode == LOPT_RIVER_4 && wi.mc >= MC_1_13 && wi.mc < MC_1_18)
     {
-        setupGenerator(&g, wi.mc, wi.large);
-        g.ls.entry_4 = &g.ls.layers[L_RIVER_MIX_4];
+    //     setupGenerator(&g, wi.mc, wi.large);
+    //     g.ls.entry_4 = &g.ls.layers[L_RIVER_MIX_4];
     }
     else if (lopt.mode == LOPT_OCEAN_256 && wi.mc >= MC_1_13 && wi.mc < MC_1_18)
     {
-        setupGenerator(&g, wi.mc, wi.large);
-        g.ls.entry_256 = &g.ls.layers[L_OCEAN_TEMP_256];
+    //     setupGenerator(&g, wi.mc, wi.large);
+    //     g.ls.entry_256 = &g.ls.layers[L_OCEAN_TEMP_256];
     }
     else if (lopt.mode == LOPT_NOOCEAN_1 && wi.mc <= MC_B1_7)
     {
@@ -920,7 +926,7 @@ void QWorld::setDim(int dim, LayerOpt lopt)
         lcnt = 6;
         qual = 4.0;
     }
-    else if (g.mc > MC_1_17 || dim != DIM_OVERWORLD)
+    else if (g.mc >= MC_1_18 || dim != DIM_OVERWORLD)
     {
         pixs = 128;
         lcnt = 6;

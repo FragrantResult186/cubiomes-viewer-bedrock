@@ -675,7 +675,7 @@ void MainWindow::updateMapSeed()
     ui->actionNoOceans->setEnabled(state);
     ui->actionBetaTemperature->setEnabled(state);
     ui->actionBetaHumidity->setEnabled(state);
-    state = (wi.mc >= MC_1_13 && wi.mc < MC_1_18);
+    state = (wi.mc < MC_1_18);
     ui->actionRiver->setEnabled(state);
     ui->actionOceanTemp->setEnabled(state);
     state = (wi.mc >= MC_1_18);

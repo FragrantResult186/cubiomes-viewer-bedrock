@@ -227,9 +227,9 @@ ConditionDialog::ConditionDialog(FormConditions *parent, MapView *mapview, Confi
         {
             LabeledRange *lr;
             if (wi.mc < MC_1_18)
-                lr = new LabeledRange(this, 0, 256);
+                lr = new LabeledRange(this, 0, 63);
             else
-                lr = new LabeledRange(this, -64, 320);
+                lr = new LabeledRange(this, -64, 63);
             climaterange[0][i] = lr;
             ui->gridHeightRange->addWidget(lr);
             on_comboHeightRange_currentIndexChanged(0);
@@ -445,6 +445,40 @@ ConditionDialog::ConditionDialog(FormConditions *parent, MapView *mapview, Confi
         ui->checkEndShip->setCheckState(totristate(cond.varflags, Condition::VAR_ENDSHIP));
         ui->checkBasement->setCheckState(totristate(cond.varflags, Condition::VAR_BASEMENT));
         ui->checkMegaRavine->setCheckState(totristate(cond.varflags, Condition::VAR_MEGARAVINE));
+        {
+            const double R2D = 180.0 / M_PI;
+            bool hasAngle = cond.varflags & Condition::VAR_ANGLE;
+            ui->checkRavineAngle->setChecked(hasAngle);
+            ui->labelYaw->setEnabled(hasAngle);
+            ui->labelYawTo->setEnabled(hasAngle);
+            ui->spinRavineYawMin->setEnabled(hasAngle);
+            ui->spinRavineYawMax->setEnabled(hasAngle);
+            ui->labelPitch->setEnabled(hasAngle);
+            ui->labelPitchTo->setEnabled(hasAngle);
+            ui->spinRavinePitchMin->setEnabled(hasAngle);
+            ui->spinRavinePitchMax->setEnabled(hasAngle);
+            if (hasAngle) {
+                ui->spinRavineYawMin->setValue(cond.ravineYawMin * R2D);
+                ui->spinRavineYawMax->setValue(cond.ravineYawMax * R2D);
+                ui->spinRavinePitchMin->setValue(cond.ravinePitchMin * R2D);
+                ui->spinRavinePitchMax->setValue(cond.ravinePitchMax * R2D);
+            } else {
+                ui->spinRavineYawMin->setValue(0.0);
+                ui->spinRavineYawMax->setValue(360.0);
+                ui->spinRavinePitchMin->setValue(-45.0);
+                ui->spinRavinePitchMax->setValue(45.0);
+            }
+            connect(ui->checkRavineAngle, &QCheckBox::toggled, this, [this](bool checked){
+                ui->labelYaw->setEnabled(checked);
+                ui->labelYawTo->setEnabled(checked);
+                ui->spinRavineYawMin->setEnabled(checked);
+                ui->spinRavineYawMax->setEnabled(checked);
+                ui->labelPitch->setEnabled(checked);
+                ui->labelPitchTo->setEnabled(checked);
+                ui->spinRavinePitchMin->setEnabled(checked);
+                ui->spinRavinePitchMax->setEnabled(checked);
+            });
+        }
         ui->checkUnderground->setCheckState(totristate(cond.varflags, Condition::VAR_UNDERGROUND));
         for (int i = 0; i < 20; i++)
             gatewaycboxes[i]->setChecked(cond.gwmask == 0 || (cond.gwmask & (1u << i)));
@@ -683,6 +717,13 @@ void ConditionDialog::updateMode()
     {
         ui->stackedWidget->setCurrentWidget(ui->pageRavine);
         ui->checkMegaRavine->setEnabled(wi.mc >= MC_1_2);
+    }
+    else if (filterindex == F_STRONGHOLD)
+    {
+        ui->stackedWidget->setCurrentWidget(ui->pageHeight);
+        ui->groupBox_11->setTitle(tr("Start stairs Y level"));
+        ui->label_11->setText(tr("Y range"));
+        ui->comboHeightRange->setVisible(false);
     }
     else if (filterindex == F_HEIGHT)
     {
@@ -1223,6 +1264,16 @@ void ConditionDialog::onAccept()
     c.varflags |= tristateFlags(ui->checkEndShip, Condition::VAR_ENDSHIP);
     c.varflags |= tristateFlags(ui->checkBasement, Condition::VAR_BASEMENT);
     c.varflags |= tristateFlags(ui->checkMegaRavine, Condition::VAR_MEGARAVINE);
+    if (ui->checkRavineAngle->isChecked()) {
+        const float D2R = (float)(M_PI / 180.0);
+        c.varflags |= Condition::VAR_ANGLE;
+        c.ravineYawMin   = (float)ui->spinRavineYawMin->value()   * D2R;
+        c.ravineYawMax   = (float)ui->spinRavineYawMax->value()   * D2R;
+        c.ravinePitchMin = (float)ui->spinRavinePitchMin->value() * D2R;
+        c.ravinePitchMax = (float)ui->spinRavinePitchMax->value() * D2R;
+    } else {
+        c.ravineYawMin = c.ravineYawMax = c.ravinePitchMin = c.ravinePitchMax = 0.0f;
+    }
     c.varflags |= tristateFlags(ui->checkUnderground, Condition::VAR_UNDERGROUND);
 
     for (VariantCheckBox *cb : qAsConst(variantboxes))

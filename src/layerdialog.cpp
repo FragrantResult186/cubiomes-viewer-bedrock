@@ -156,13 +156,13 @@ LayerDialog::LayerDialog(QWidget *parent, WorldInfo wi)
             combo[i]->setFont(fmono);
         if (i >= LOPT_NOISE_T_4 && i <= LOPT_NOISE_W_4)
         {
-            radio[i]->setEnabled(wi.mc > MC_1_17);
+            radio[i]->setEnabled(wi.mc >= MC_1_18);
             if (combo[i])
-                combo[i]->setEnabled(wi.mc > MC_1_17);
+                combo[i]->setEnabled(wi.mc >= MC_1_18);
         }
         if (i == LOPT_RIVER_4 || i == LOPT_OCEAN_256)
         {
-            radio[i]->setEnabled(wi.mc > MC_1_12 && wi.mc < MC_1_18);
+            radio[i]->setEnabled(wi.mc > MC_1_0 && wi.mc < MC_1_18);
         }
         if (i == LOPT_NOOCEAN_1 || i == LOPT_BETA_T_1 || i == LOPT_BETA_H_1)
         {

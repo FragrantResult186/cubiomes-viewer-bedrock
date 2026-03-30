@@ -385,10 +385,12 @@ static const struct FilterList : private FilterInfo
         };
 
         list[F_STRONGHOLD] = FilterInfo{
-            CAT_STRUCT, 1, LOC_RAD, 0, 1, BR_CLUST, MC_UNDEF, MC_NEWEST, 0, 0, disp++,
+            CAT_STRUCT, 1, LOC_RAD, 0, 1, BR_CLUST, MC_UNDEF, MC_NEWEST, 0, 1, disp++,
             "stronghold",
             QT_TRANSLATE_NOOP("Filter", "Stronghold"),
-            ""
+            QT_TRANSLATE_NOOP("Filter",
+            "Filter by the Y level of the start stairs. "
+            "Leave at default to disable height filtering.")
         };
 
         list[F_VILLAGE] = FilterInfo{
@@ -592,7 +594,8 @@ struct /*__attribute__((packed))*/ Condition
         VER_2_4_0       = 2,
         VER_3_4_0       = 3,
         VER_4_0_0       = 4,
-        VER_CURRENT     = VER_4_0_0,
+        VER_5_0_0       = 5,
+        VER_CURRENT     = VER_5_0_0,
     };
     enum { // meta flags
         DISABLED        = 0x0001,
@@ -613,6 +616,7 @@ struct /*__attribute__((packed))*/ Condition
         VAR_MEGARAVINE  = 0x0040, // mega ravine
         VAR_UNDERGROUND = 0x0080, // underground portal
         VAR_BLACKSMITH  = 0x0100, // has blacksmith (preVillage)
+        VAR_ANGLE       = 0x0200, // ravine angle
     };
     enum { // min/max
         // legacy 0:min<= 1:max>= 2:min>= 3:max<=
@@ -658,6 +662,10 @@ struct /*__attribute__((packed))*/ Condition
     float       confidence;
     int         gwindex;// linked gateway: inner gateway index (0-19)
     uint32_t    gwmask; // linked gateway: bitmask of allowed indices (bit i = index i, 0 = all allowed)
+    float       ravineYawMin;
+    float       ravineYawMax;
+    float       ravinePitchMin;
+    float       ravinePitchMax;
 
     // generated members - initialized when the search is started
     uint8_t     generated_start[0]; // address dummy
@@ -676,7 +684,7 @@ struct /*__attribute__((packed))*/ Condition
 };
 
 static_assert(
-    offsetof(Condition, generated_start) == 328,
+    offsetof(Condition, generated_start) == 344,
     "Layout of Condition has changed!"
 );
 

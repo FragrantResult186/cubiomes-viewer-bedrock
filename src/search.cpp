@@ -1699,6 +1699,12 @@ L_qm_any:
                 bool wantgiant = !(cond->varflags & Condition::VAR_NOT);
                 if (isgiant != wantgiant) continue;
             }
+            if (cond->varflags & Condition::VAR_ANGLE) {
+                StructureVariant sv;
+                getVariant(&sv, Ravine, env->mc, env->seed, p[i].x, p[i].z, -1);
+                if (sv.yaw   < cond->ravineYawMin   || sv.yaw   > cond->ravineYawMax)   continue;
+                if (sv.pitch < cond->ravinePitchMin || sv.pitch > cond->ravinePitchMax) continue;
+            }
             matched++;
             if (cent && matched == 1) *cent = p[i];
         }
@@ -1862,6 +1868,29 @@ L_qm_any:
                         inside = false;
                     if (inside)
                     {
+                        int ymin = cond->limok[NP_DEPTH][0];
+                        int ymax = cond->limok[NP_DEPTH][1];
+                        if (ymin != INT_MIN || ymax != INT_MAX)
+                        {
+                            Piece pieces[SH_PIECES_MAX];
+                            int pcnt = getStrongholdPieces(pieces, SH_PIECES_MAX,
+                                           env->mc, env->seed,
+                                           shpos.x >> 4, shpos.z >> 4);
+                            int portalY = INT_MIN;
+                            for (int pi = 0; pi < pcnt; pi++)
+                            {
+                                if (pieces[pi].type == SH_START)
+                                {
+                                    portalY = pieces[pi].bb0.y;
+                                    break;
+                                }
+                            }
+                            if (portalY == INT_MIN || portalY < ymin || portalY > ymax)
+                                inside = false;
+                        }
+                    }
+                    if (inside)
+                    {
                         if (cond->count == 0)
                         {   // exclude
                             return COND_FAILED;
@@ -1903,6 +1932,29 @@ L_qm_any:
                 }
                 if (cond->skipref && sh.pos.x == at.x && sh.pos.z == at.z)
                     inside = false;
+                if (inside)
+                {
+                    int ymin = cond->limok[NP_DEPTH][0];
+                    int ymax = cond->limok[NP_DEPTH][1];
+                    if (ymin != INT_MIN || ymax != INT_MAX)
+                    {
+                        Piece pieces[SH_PIECES_MAX];
+                        int pcnt = getStrongholdPieces(pieces, SH_PIECES_MAX,
+                                       env->mc, env->seed,
+                                       sh.pos.x >> 4, sh.pos.z >> 4);
+                        int portalY = INT_MIN;
+                        for (int pi = 0; pi < pcnt; pi++)
+                        {
+                            if (pieces[pi].type == SH_START)
+                            {
+                                portalY = pieces[pi].bb0.y;
+                                break;
+                            }
+                        }
+                        if (portalY == INT_MIN || portalY < ymin || portalY > ymax)
+                            inside = false;
+                    }
+                }
                 if (inside)
                 {
                     if (cond->count == 0)
@@ -2144,7 +2196,7 @@ L_qm_any:
     case F_BIOME_4_RIVER:
     case F_BIOME_256_OTEMP:
 
-        if (env->mc > MC_1_17)
+        if (env->mc >= MC_1_18)
             return COND_FAILED;
 
         s = cond->type == F_BIOME_4_RIVER ? 2 : 8;
@@ -2157,7 +2209,7 @@ L_qm_any:
         if (imax) *imax = 1;
         if (env->searchpass == PASS_FULL_32)
         {
-            if (env->mc < MC_1_13 || cond->type != F_BIOME_256_OTEMP)
+            if (env->mc < MC_1_18 || cond->type != F_BIOME_256_OTEMP)
                 return COND_MAYBE_POS_VALID;
         }
         valid = COND_FAILED;
@@ -2181,7 +2233,7 @@ L_qm_any:
 
 
     case F_TEMPS:
-        if (env->mc > MC_1_17)
+        if (env->mc >= MC_1_18)
             return COND_FAILED;
         rx1 = x1 >> 10;
         rz1 = z1 >> 10;

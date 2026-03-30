@@ -70,7 +70,7 @@ void setupGenerator(Generator *g, int mc, uint32_t flags)
     {
         setupLayerStack(&g->ls, mc, flags & LARGE_BIOMES);
         g->entry = NULL;
-        if (flags & FORCE_OCEAN_VARIANTS && mc >= MC_1_13)
+        if (flags & FORCE_OCEAN_VARIANTS && mc >= MC_1_18)
         {
             g->ls.entry_16 = setupLayer(
                 g->xlayer + 2, &mapOceanMixMod, mc, 1, 0, 0,
@@ -397,16 +397,16 @@ void setupLayerStack(LayerStack *g, int mc, int largeBiomes)
     if (mc <= MC_1_0)
     {
     }
-    else if (mc <= MC_1_12)
+    else // if (mc <= MC_1_12)
     {
         p = setupLayer(l + L_ZOOM_128_HILLS, mapZoom, mc, 2, 3, 0, p, 0);
         p = setupLayer(l + L_ZOOM_64_HILLS, mapZoom, mc, 2, 3, 0, p, 0);
     }
-    else // if (mc >= MC_1_13)
-    {
-        p = setupLayer(l + L_ZOOM_128_HILLS, mapZoom, mc, 2, 3, 1001, p, 0);
-        p = setupLayer(l + L_ZOOM_64_HILLS, mapZoom, mc, 2, 3, 1001, p, 0);
-    }
+    // else // if (mc >= MC_1_13)
+    // {
+    //     p = setupLayer(l + L_ZOOM_128_HILLS, mapZoom, mc, 2, 3, 1001, p, 0);
+    //     p = setupLayer(l + L_ZOOM_64_HILLS, mapZoom, mc, 2, 3, 1001, p, 0);
+    // }
 
     if (mc <= MC_1_0)
     { //             L                   M               V   Z  E  S     P1 P2
@@ -515,30 +515,30 @@ void setupLayerStack(LayerStack *g, int mc, int largeBiomes)
     p = setupLayer(l + L_RIVER_MIX_4, mapRiverMix, mc, 1, 0, 100,
                    l + L_SMOOTH_4, l + L_SMOOTH_4_RIVER);
 
-    if (mc <= MC_1_12)
+    // if (mc <= MC_1_12)
     {
         p = setupLayer(l + L_VORONOI_1, mapVoronoi114, mc, 4, 3, 10, p, 0);
     }
-    else
-    {
-        // ocean variants
-        p = setupLayer(l + L_OCEAN_TEMP_256, mapOceanTemp, mc, 1, 0, 2, 0, 0);
-        p->noise = &g->oceanRnd;
-        p = setupLayer(l + L_OCEAN_EDGE_256, mapOceanEdge, mc, 1, 2, 2, p, 0);
-        p = setupLayer(l + L_ZOOM_128_OCEAN, mapZoom, mc, 2, 3, 2002, p, 0);
-        p = setupLayer(l + L_ZOOM_64_OCEAN, mapZoom, mc, 2, 3, 2002, p, 0);
-        p = setupLayer(l + L_ZOOM_32_OCEAN, mapZoom, mc, 2, 3, 2002, p, 0);
-        p = setupLayer(l + L_ZOOM_16_OCEAN, mapZoom, mc, 2, 3, 2002, p, 0);
-        p = setupLayer(l + L_ZOOM_8_OCEAN, mapZoom, mc, 2, 3, 2002, p, 0);
-        p = setupLayer(l + L_ZOOM_4_OCEAN, mapZoom, mc, 2, 3, 2002, p, 0);
-        p = setupLayer(l + L_OCEAN_MIX_4, mapOceanMix, mc, 1, 17, 100,
-                       l + L_RIVER_MIX_4, l + L_ZOOM_4_OCEAN);
-
-        p = setupLayer(l + L_VORONOI_1, mapVoronoi114, mc, 4, 7, 10, p, 0);
-    }
+    // else
+    // {
+    //     // ocean variants
+    //     p = setupLayer(l + L_OCEAN_TEMP_256, mapOceanTemp, mc, 1, 0, 2, 0, 0);
+    //     p->noise = &g->oceanRnd;
+    //     p = setupLayer(l + L_OCEAN_EDGE_256, mapOceanEdge, mc, 1, 2, 2, p, 0);
+    //     p = setupLayer(l + L_ZOOM_128_OCEAN, mapZoom, mc, 2, 3, 2002, p, 0);
+    //     p = setupLayer(l + L_ZOOM_64_OCEAN, mapZoom, mc, 2, 3, 2002, p, 0);
+    //     p = setupLayer(l + L_ZOOM_32_OCEAN, mapZoom, mc, 2, 3, 2002, p, 0);
+    //     p = setupLayer(l + L_ZOOM_16_OCEAN, mapZoom, mc, 2, 3, 2002, p, 0);
+    //     p = setupLayer(l + L_ZOOM_8_OCEAN, mapZoom, mc, 2, 3, 2002, p, 0);
+    //     p = setupLayer(l + L_ZOOM_4_OCEAN, mapZoom, mc, 2, 3, 2002, p, 0);
+    //     p = setupLayer(l + L_OCEAN_MIX_4, mapOceanMix, mc, 1, 17, 100,
+    //                    l + L_RIVER_MIX_4, l + L_ZOOM_4_OCEAN);
+    //
+    //     p = setupLayer(l + L_VORONOI_1, mapVoronoi114, mc, 4, 7, 10, p, 0);
+    // }
 
     g->entry_1 = p;
-    g->entry_4 = l + (mc <= MC_1_12 ? L_RIVER_MIX_4 : L_OCEAN_MIX_4);
+    g->entry_4 = l + L_RIVER_MIX_4;
     if (largeBiomes)
     {
         g->entry_16 = l + L_ZOOM_4;

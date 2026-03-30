@@ -1278,9 +1278,9 @@ int isViableFeatureBiome(int mc, int structureType, int biomeID)
         return biomeID == desert || biomeID == plains || biomeID == savanna || biomeID == taiga;
 
     case Village:
-        if (biomeID == plains || biomeID == desert || biomeID == savanna || biomeID == snowy_plains || biomeID == sunflower_plains)
+        if (biomeID == plains || biomeID == desert || biomeID == savanna || biomeID == snowy_plains)
             return 1;
-        if (mc >= MC_1_11 && (biomeID == taiga || biomeID == snowy_taiga))
+        if (mc >= MC_1_11 && (biomeID == taiga || biomeID == snowy_taiga || biomeID == sunflower_plains))
             return 1;
         if (mc >= MC_1_18 && biomeID == meadow)
             return 1;
@@ -1991,7 +1991,7 @@ int getVariant(StructureVariant *r, int structType, int mc, uint64_t seed,
     switch (structType)
     {
     case Village:
-        if (mc < MC_1_0)
+        if (mc < MC_1_11)
             return 0;
         if (!isViableFeatureBiome(mc, Village, biomeID))
             return 0;
@@ -2266,8 +2266,8 @@ int getVariant(StructureVariant *r, int structType, int mc, uint64_t seed,
         }
         skipNextN(1);
         nextInt(16);// z
-        nextFloat();// yaw
-        nextFloat();// pitch
+        r->yaw   = nextFloat() * 2.0f * PI;
+        r->pitch = (nextFloat() - 0.5f) / 4.0f;
         r->thick = (nextFloat() + nextFloat()) * 3.0f;
         r->giant = nextFloat() < 0.05f;
         r->underwater = isOceanic(biomeID);
@@ -3682,6 +3682,10 @@ int getFortressPieces(Piece *list, int n, int mc, uint64_t seed, int chunkX, int
     return count;
 }
 
+//==============================================================================
+// Village Generator (1.0-1.10)
+//==============================================================================
+
 uint64_t getHouseList(int *out, uint64_t seed, int chunkX, int chunkZ)
 {
     setRegionSeed(seed, chunkX, chunkZ, 10387312);
@@ -3698,6 +3702,490 @@ uint64_t getHouseList(int *out, uint64_t seed, int chunkX, int chunkZ)
     out[HouseLarge] = nextIntRange(0, 4);
 
     return 1;
+}
+
+#define PV_F_DOWN  0
+#define PV_F_UP    1
+#define PV_F_NORTH 2
+#define PV_F_SOUTH 3
+#define PV_F_WEST  4
+#define PV_F_EAST  5
+
+typedef struct { int minX, minY, minZ, maxX, maxY, maxZ; } PV_BB;
+
+static PV_BB pvbb_make(int x1,int y1,int z1,int x2,int y2,int z2)
+{ PV_BB b={x1,y1,z1,x2,y2,z2}; return b; }
+
+static PV_BB pvbb_empty(void)
+{ return pvbb_make(0x7fffffff,0x7fffffff,0x7fffffff,(int)0x80000000,(int)0x80000000,(int)0x80000000); }
+
+static int pvbb_intersects(const PV_BB *a, const PV_BB *b)
+{
+    return a->maxX >= b->minX && a->minX <= b->maxX &&
+           a->maxZ >= b->minZ && a->minZ <= b->maxZ &&
+           a->maxY >= b->minY && a->minY <= b->maxY;
+}
+static int pvbb_xsize(const PV_BB *b){ return b->maxX - b->minX + 1; }
+static int pvbb_zsize(const PV_BB *b){ return b->maxZ - b->minZ + 1; }
+
+static PV_BB pvbb_component(int sx,int sy,int sz,
+                             int xMin,int yMin,int zMin,
+                             int xMax,int yMax,int zMax,int facing)
+{
+    switch(facing){
+    case PV_F_NORTH:
+        return pvbb_make(sx+xMin, sy+yMin, sz-zMax+1+zMin, sx+xMax-1+xMin, sy+yMax-1+yMin, sz+zMin);
+    case PV_F_SOUTH:
+        return pvbb_make(sx+xMin, sy+yMin, sz+zMin, sx+xMax-1+xMin, sy+yMax-1+yMin, sz+zMax-1+zMin);
+    case PV_F_WEST:
+        return pvbb_make(sx-zMax+1+zMin, sy+yMin, sz+xMin, sx+zMin, sy+yMax-1+yMin, sz+xMax-1+xMin);
+    case PV_F_EAST:
+        return pvbb_make(sx+zMin, sy+yMin, sz+xMin, sx+zMax-1+zMin, sy+yMax-1+yMin, sz+xMax-1+xMin);
+    default:
+        return pvbb_make(sx+xMin, sy+yMin, sz+zMin, sx+xMax-1+xMin, sy+yMax-1+yMin, sz+zMax-1+zMin);
+    }
+}
+
+typedef struct {
+    int vpType;
+    int facing;
+    int depth;
+    PV_BB bb;
+    int length;
+} PV_Piece;
+
+#define PV_MAX_PIECES 512
+#define PV_MAX_PENDING 512
+
+typedef struct { PV_Piece arr[PV_MAX_PIECES]; int n; } PV_PieceArr;
+typedef struct { int idx[PV_MAX_PENDING]; int n; } PV_PendingList;
+
+static void pv_pa_add(PV_PieceArr *pa, const PV_Piece *p)
+{ if(pa->n < PV_MAX_PIECES) pa->arr[pa->n++] = *p; }
+
+static void pv_pl_add(PV_PendingList *pl, int i)
+{ if(pl->n < PV_MAX_PENDING) pl->idx[pl->n++] = i; }
+
+static int pv_pl_remove(PV_PendingList *pl, int pos)
+{
+    int v = pl->idx[pos];
+    for(int k=pos; k<pl->n-1; k++) pl->idx[k]=pl->idx[k+1];
+    pl->n--;
+    return v;
+}
+
+#define PV_NUM_PW 9
+typedef struct { int vpType; int weight; int spawned; int limit; } PV_PW;
+typedef struct { PV_PW pw[PV_NUM_PW]; int n; } PV_PWList;
+
+static const int PV_PW_VPTYPES[PV_NUM_PW] = {
+    VP_HOUSE4G, VP_CHURCH, VP_HOUSE1, VP_WOODHUT, VP_HALL,
+    VP_FIELD1, VP_FIELD2, VP_HOUSE2, VP_HOUSE3
+};
+static const int PV_PW_WEIGHTS[PV_NUM_PW] = { 4,20,20,3,15,3,3,15,8 };
+
+static void pv_pw_init(PV_PWList *pwl, const int limits[PV_NUM_PW])
+{
+    pwl->n = 0;
+    for (int i=0; i<PV_NUM_PW; i++)
+    {
+        if (limits[i]>0)
+        {
+            pwl->pw[pwl->n].vpType = PV_PW_VPTYPES[i];
+            pwl->pw[pwl->n].weight = PV_PW_WEIGHTS[i];
+            pwl->pw[pwl->n].spawned = 0;
+            pwl->pw[pwl->n].limit = limits[i];
+            pwl->n++;
+        }
+    }
+}
+
+static int pv_pw_total(const PV_PWList *pwl)
+{
+    int total=0, hasAvail=0;
+    for (int i=0; i<pwl->n; i++)
+    {
+        if (pwl->pw[i].spawned < pwl->pw[i].limit) hasAvail=1;
+        total += pwl->pw[i].weight;
+    }
+    return hasAvail ? total : -1;
+}
+
+static void pv_pw_remove(PV_PWList *pwl, int wi)
+{
+    for (int m=wi; m<pwl->n-1; m++) pwl->pw[m]=pwl->pw[m+1];
+    pwl->n--;
+}
+
+typedef struct {
+    PV_PieceArr *pieces;
+    PV_PendingList pendingRoads;
+    PV_PendingList pendingHouses;
+    PV_PWList weights;
+    int lastPlacedPWIdx;
+    int terrainType;
+    PV_BB startBB;
+} PV_VStart;
+
+static int pv_find_intersecting(const PV_PieceArr *pa, const PV_BB *bb)
+{
+    for (int i=0; i<pa->n; i++)
+    {
+        if (pvbb_intersects(&pa->arr[i].bb, bb))
+        {
+            return i;
+        }
+    }
+    return -1;
+}
+
+static int pv_path_find_box(PV_VStart *vs, int x,int y,int z,int facing, PV_BB *out)
+{
+    int initLen = 7 * nextIntRange(3,6);
+    for (int i=initLen; i>=7; i-=7)
+    {
+        PV_BB bb = pvbb_component(x,y,z, 0,0,0, 3,3,i, facing);
+        if (pv_find_intersecting(vs->pieces, &bb) < 0)
+        {
+            *out=bb;
+            return 1;
+        }
+    }
+    return 0;
+}
+
+static int pv_torch_find_box(PV_VStart *vs, int x,int y,int z,int facing, PV_BB *out)
+{
+    PV_BB bb = pvbb_component(x,y,z, 0,0,0, 3,4,2, facing);
+    if (pv_find_intersecting(vs->pieces, &bb) < 0)
+    {
+        *out=bb;
+        return 1;
+    }
+    return 0;
+}
+
+static int pv_gen_add_road(PV_VStart *vs, int x,int y,int z,int facing,int depth)
+{
+    if (depth > 3 + vs->terrainType) return -1;
+    int dx = x - vs->startBB.minX; if(dx<0) dx=-dx;
+    int dz = z - vs->startBB.minZ; if(dz<0) dz=-dz;
+    if (dx>112 || dz>112) return -1;
+
+    PV_BB bb;
+    if (!pv_path_find_box(vs,x,y,z,facing,&bb)) return -1;
+    if (bb.minY <= 10) return -1;
+
+    PV_Piece p;
+    p.vpType = VP_PATH; p.facing = facing; p.depth = depth; p.bb = bb;
+    int xs = pvbb_xsize(&bb);
+    int zs = pvbb_zsize(&bb);
+    p.length = xs > zs ? xs : zs;
+    int idx = vs->pieces->n;
+    pv_pa_add(vs->pieces, &p);
+    pv_pl_add(&vs->pendingRoads, idx);
+    return idx;
+}
+
+static int pv_create_building(PV_VStart *vs, int vpType,
+                               int x,int y,int z,int facing,int depth)
+{
+    PV_BB bb;
+    switch(vpType)
+    {
+    case VP_HOUSE4G:
+        bb = pvbb_component(x,y,z, 0,0,0, 5,6,5, facing);
+        if (pv_find_intersecting(vs->pieces,&bb)>=0) return -1;
+        nextBoolean(); break;
+    case VP_CHURCH:
+        bb = pvbb_component(x,y,z, 0,0,0, 5,12,9, facing);
+        if (bb.minY<=10 || pv_find_intersecting(vs->pieces,&bb)>=0) return -1;
+        break;
+    case VP_HOUSE1:
+        bb = pvbb_component(x,y,z, 0,0,0, 9,9,6, facing);
+        if (bb.minY<=10 || pv_find_intersecting(vs->pieces,&bb)>=0) return -1;
+        break;
+    case VP_WOODHUT:
+        bb = pvbb_component(x,y,z, 0,0,0, 4,6,5, facing);
+        if (bb.minY<=10 || pv_find_intersecting(vs->pieces,&bb)>=0) return -1;
+        nextBoolean(); nextInt(3); break;
+    case VP_HALL:
+        bb = pvbb_component(x,y,z, 0,0,0, 9,7,11, facing);
+        if (bb.minY<=10 || pv_find_intersecting(vs->pieces,&bb)>=0) return -1;
+        break;
+    case VP_FIELD1:
+        bb = pvbb_component(x,y,z, 0,0,0, 13,4,9, facing);
+        if (bb.minY<=10 || pv_find_intersecting(vs->pieces,&bb)>=0) return -1;
+        nextInt(10); nextInt(10); nextInt(10); nextInt(10); break;
+    case VP_FIELD2:
+        bb = pvbb_component(x,y,z, 0,0,0, 7,4,9, facing);
+        if (bb.minY<=10 || pv_find_intersecting(vs->pieces,&bb)>=0) return -1;
+        nextInt(10); nextInt(10); break;
+    case VP_HOUSE2:
+        bb = pvbb_component(x,y,z, 0,0,0, 10,6,7, facing);
+        if (bb.minY<=10 || pv_find_intersecting(vs->pieces,&bb)>=0) return -1;
+        break;
+    case VP_HOUSE3:
+        bb = pvbb_component(x,y,z, 0,0,0, 9,7,12, facing);
+        if (bb.minY<=10 || pv_find_intersecting(vs->pieces,&bb)>=0) return -1;
+        break;
+    default: return -1;
+    }
+    PV_Piece p; p.vpType=vpType; p.facing=facing; p.depth=depth; p.bb=bb; p.length=0;
+    int idx = vs->pieces->n;
+    pv_pa_add(vs->pieces, &p);
+    return idx;
+}
+
+static int pv_gen_component(PV_VStart *vs, int x,int y,int z,int facing,int depth)
+{
+    int total = pv_pw_total(&vs->weights);
+    if (total<=0)
+        return -1;
+    for (int attempt=0; attempt<5; attempt++)
+    {
+        int k = nextInt(total);
+        for (int wi=0; wi<vs->weights.n; wi++)
+        {
+            PV_PW *pw = &vs->weights.pw[wi];
+            k -= pw->weight;
+            if (k>=0)
+                continue;
+            int canSpawn = (pw->spawned < pw->limit);
+            int isLast = (wi == vs->lastPlacedPWIdx && vs->weights.n > 1);
+            if (!canSpawn || isLast)
+                break;
+            int idx = pv_create_building(vs, pw->vpType, x, y, z, facing, depth);
+            if (idx<0)
+                break;
+            pw->spawned++;
+            vs->lastPlacedPWIdx = wi;
+            if (pw->spawned >= pw->limit)
+            {
+                pv_pw_remove(&vs->weights, wi);
+                if (vs->lastPlacedPWIdx == wi)
+                {
+                    vs->lastPlacedPWIdx = -1;
+                }
+                else if (vs->lastPlacedPWIdx > wi)
+                {
+                    vs->lastPlacedPWIdx--;
+                }
+            }
+            return idx;
+        }
+    }
+    PV_BB bb;
+    if (pv_torch_find_box(vs,x,y,z,facing,&bb))
+    {
+        PV_Piece p; p.vpType=VP_TORCH; p.facing=facing; p.depth=depth; p.bb=bb; p.length=0;
+        int idx = vs->pieces->n;
+        pv_pa_add(vs->pieces, &p);
+        return idx;
+    }
+    return -1;
+}
+
+static int pv_gen_add_component(PV_VStart *vs, int x,int y,int z,int facing,int depth)
+{
+    if (depth>50)
+        return -1;
+    int dx = x - vs->startBB.minX; if(dx<0) dx=-dx;
+    int dz = z - vs->startBB.minZ; if(dz<0) dz=-dz;
+    if (dx>112 || dz>112)
+        return -1;
+    int idx = pv_gen_component(vs,x,y,z,facing,depth+1);
+    if (idx>=0)
+    {
+        pv_pl_add(&vs->pendingHouses, idx);
+    }
+    return idx;
+}
+
+static int pv_get_next_nn(PV_VStart *vs, int pi, int yOff, int zOff)
+{
+    const PV_Piece *p = &vs->pieces->arr[pi];
+    switch (p->facing)
+    {
+    case PV_F_NORTH:
+    case PV_F_SOUTH:
+        return pv_gen_add_component(vs, p->bb.minX-1, p->bb.minY+yOff, p->bb.minZ+zOff, PV_F_WEST, p->depth);
+    case PV_F_WEST:
+    case PV_F_EAST:
+        return pv_gen_add_component(vs, p->bb.minX+zOff, p->bb.minY+yOff, p->bb.minZ-1, PV_F_NORTH, p->depth);
+    default: return -1;
+    }
+}
+
+static int pv_get_next_pp(PV_VStart *vs, int pi, int yOff, int zOff)
+{
+    const PV_Piece *p = &vs->pieces->arr[pi];
+    switch (p->facing)
+    {
+    case PV_F_NORTH:
+    case PV_F_SOUTH:
+        return pv_gen_add_component(vs, p->bb.maxX+1, p->bb.minY+yOff, p->bb.minZ+zOff, PV_F_EAST, p->depth);
+    case PV_F_WEST:
+    case PV_F_EAST:
+        return pv_gen_add_component(vs, p->bb.minX+zOff, p->bb.minY+yOff, p->bb.maxZ+1, PV_F_SOUTH, p->depth);
+    default: return -1;
+    }
+}
+
+static void pv_path_build(PV_VStart *vs, int pi)
+{
+    int length = vs->pieces->arr[pi].length;
+    int facing = vs->pieces->arr[pi].facing;
+    int flag = 0;
+    for (int i=nextInt(5); i<length-8; i+=2+nextInt(5))
+    {
+        int idx = pv_get_next_nn(vs,pi,0,i);
+        if (idx>=0)
+        {
+            int xs=pvbb_xsize(&vs->pieces->arr[idx].bb);
+            int zs=pvbb_zsize(&vs->pieces->arr[idx].bb);
+            i += (xs>zs?xs:zs); flag=1;
+        }
+    }
+    for (int j=nextInt(5); j<length-8; j+=2+nextInt(5))
+    {
+        int idx = pv_get_next_pp(vs,pi,0,j);
+        if (idx>=0)
+        {
+            int xs=pvbb_xsize(&vs->pieces->arr[idx].bb);
+            int zs=pvbb_zsize(&vs->pieces->arr[idx].bb);
+            j += (xs>zs?xs:zs); flag=1;
+        }
+    }
+    if (flag && nextInt(3)>0 && facing!=-1)
+    {
+        const PV_BB *b = &vs->pieces->arr[pi].bb;
+        int dep = vs->pieces->arr[pi].depth;
+        switch (facing)
+        {
+        default:
+        case PV_F_NORTH: pv_gen_add_road(vs,b->minX-1,b->minY,b->minZ+0,PV_F_WEST, dep); break;
+        case PV_F_SOUTH: pv_gen_add_road(vs,b->minX-1,b->minY,b->maxZ-2,PV_F_WEST, dep); break;
+        case PV_F_WEST:  pv_gen_add_road(vs,b->minX+0,b->minY,b->minZ-1,PV_F_NORTH,dep); break;
+        case PV_F_EAST:  pv_gen_add_road(vs,b->maxX-2,b->minY,b->minZ-1,PV_F_NORTH,dep); break;
+        }
+    }
+    if (flag && nextInt(3)>0 && facing!=-1)
+    {
+        const PV_BB *b = &vs->pieces->arr[pi].bb;
+        int dep = vs->pieces->arr[pi].depth;
+        switch (facing)
+        {
+        default:
+        case PV_F_NORTH: pv_gen_add_road(vs,b->maxX+1,b->minY,b->minZ+0,PV_F_EAST, dep); break;
+        case PV_F_SOUTH: pv_gen_add_road(vs,b->maxX+1,b->minY,b->maxZ-2,PV_F_EAST, dep); break;
+        case PV_F_WEST:  pv_gen_add_road(vs,b->minX+0,b->minY,b->maxZ+1,PV_F_SOUTH,dep); break;
+        case PV_F_EAST:  pv_gen_add_road(vs,b->maxX-2,b->minY,b->maxZ+1,PV_F_SOUTH,dep); break;
+        }
+    }
+}
+
+static void pv_well_build(PV_VStart *vs)
+{
+    const PV_BB *b = &vs->pieces->arr[0].bb;
+    int dep = vs->pieces->arr[0].depth;
+    pv_gen_add_road(vs, b->minX-1, b->maxY-4, b->minZ+1, PV_F_WEST,  dep);
+    pv_gen_add_road(vs, b->maxX+1, b->maxY-4, b->minZ+1, PV_F_EAST,  dep);
+    pv_gen_add_road(vs, b->minX+1, b->maxY-4, b->minZ-1, PV_F_NORTH, dep);
+    pv_gen_add_road(vs, b->minX+1, b->maxY-4, b->maxZ+1, PV_F_SOUTH, dep);
+}
+
+static int pv_facing_to_rot(int facing)
+{
+    switch (facing)
+    {
+    case PV_F_SOUTH: return 0;
+    case PV_F_WEST:  return 1;
+    case PV_F_NORTH: return 2;
+    case PV_F_EAST:  return 3;
+    default: return 0;
+    }
+}
+
+int getPreVillagePieces(Piece *list, int n, uint64_t seed, int chunkX, int chunkZ)
+{
+    static const int hf[4] = { PV_F_SOUTH, PV_F_WEST, PV_F_NORTH, PV_F_EAST };
+
+    setRegionSeed(seed, chunkX, chunkZ, 10387312);
+    next(); // separation x
+    next(); // separation z
+
+    int limits[PV_NUM_PW];
+    limits[0] = nextIntRange(2,5); // HOUSE4G
+    limits[1] = nextIntRange(0,2); // CHURCH
+    limits[2] = nextIntRange(0,3); // HOUSE1
+    limits[3] = nextIntRange(2,6); // WOODHUT
+    limits[4] = nextIntRange(0,3); // HALL
+    limits[5] = nextIntRange(1,5); // FIELD1
+    limits[6] = nextIntRange(2,5); // FIELD2
+    limits[7] = nextIntRange(0,2); // HOUSE2
+    limits[8] = nextIntRange(0,4); // HOUSE3
+
+    PV_PieceArr pa;
+    memset(&pa, 0, sizeof(pa));
+
+    PV_VStart vs;
+    memset(&vs, 0, sizeof(vs));
+    vs.pieces          = &pa;
+    vs.lastPlacedPWIdx = -1;
+    vs.terrainType     = 0;
+    pv_pw_init(&vs.weights, limits);
+
+    int wx = (chunkX << 4) + 2;
+    int wz = (chunkZ << 4) + 2;
+
+    PV_Piece wellPiece;
+    wellPiece.vpType = VP_WELL;
+    wellPiece.facing = hf[nextInt(4)];
+    wellPiece.depth = 0;
+    wellPiece.bb = pvbb_make(wx, 64, wz, wx+5, 78, wz+5);
+    wellPiece.length = 0;
+
+    vs.startBB = wellPiece.bb;
+    pv_pa_add(&pa, &wellPiece);
+    pv_well_build(&vs);
+
+    while (vs.pendingRoads.n > 0 || vs.pendingHouses.n > 0)
+    {
+        if (vs.pendingRoads.n == 0)
+        {
+            int i = nextInt(vs.pendingHouses.n);
+            pv_pl_remove(&vs.pendingHouses, i);
+        }
+        else
+        {
+            int j = nextInt(vs.pendingRoads.n);
+            int idx = pv_pl_remove(&vs.pendingRoads, j);
+            pv_path_build(&vs, idx);
+        }
+    }
+
+    int count = pa.n < n ? pa.n : n;
+    for (int i = 0; i < count; i++)
+    {
+        const PV_Piece *src = &pa.arr[i];
+        Piece *dst = &list[i];
+        dst->name  = NULL;
+        dst->pos.x = (src->bb.minX + src->bb.maxX) / 2;
+        dst->pos.y = src->bb.minY;
+        dst->pos.z = (src->bb.minZ + src->bb.maxZ) / 2;
+        dst->bb0.x = src->bb.minX;
+        dst->bb0.y = src->bb.minY;
+        dst->bb0.z = src->bb.minZ;
+        dst->bb1.x = src->bb.maxX;
+        dst->bb1.y = src->bb.maxY;
+        dst->bb1.z = src->bb.maxZ;
+        dst->rot   = (uint8_t)pv_facing_to_rot(src->facing);
+        dst->depth = (int8_t)(src->depth < 127 ? src->depth : 127);
+        dst->type  = (int8_t)src->vpType;
+        dst->next  = NULL;
+    }
+    return count;
 }
 
 //==============================================================================
@@ -5992,7 +6480,7 @@ static void _genPotential(struct _gp_args *a, int layer, int id)
         break;
 
     case L_OCEAN_MIX_4:
-        if (mc <= MC_1_12) goto L_bad_layer;
+        /*if (mc z<= MC_1_12)*/ goto L_bad_layer;
         // fallthrough
 
     case L_VORONOI_1:

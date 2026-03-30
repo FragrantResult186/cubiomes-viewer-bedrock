@@ -83,6 +83,8 @@ STRUCT(StructureVariant)
     uint8_t basement    :1; // igloo with basement
     uint8_t cracked     :1; // geode with crack
     float_t thick;          // ravine thickness
+    float_t yaw;            // ravine yaw
+    float_t pitch;          // ravine pitch
     uint8_t size;           // geode size | igloo middel pieces
     uint8_t start;          // starting piece index
     short   biome;          // biome variant
@@ -528,6 +530,24 @@ enum
 };
 uint64_t getHouseList(int *houses, uint64_t seed, int chunkX, int chunkZ);
 
+enum
+{
+    VP_WELL    = 0,
+    VP_PATH    = 1,
+    VP_TORCH   = 2,
+    VP_HOUSE4G = 3,
+    VP_CHURCH  = 4,
+    VP_HOUSE1  = 5,
+    VP_WOODHUT = 6,
+    VP_HALL    = 7,
+    VP_FIELD1  = 8,
+    VP_FIELD2  = 9,
+    VP_HOUSE2  = 10,
+    VP_HOUSE3  = 11,
+    VP_PIECES_MAX = 512,
+};
+
+int getPreVillagePieces(Piece *list, int n, uint64_t seed, int chunkX, int chunkZ);
 
 
 //==============================================================================
