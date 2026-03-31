@@ -2334,7 +2334,7 @@ void moveInsideHeights(Piece *list, int count, int minY, int maxY)
     int s = (maxY - minY + 1) - h;
     int offset = (s > 1) ? nextInt(s) : 0;
     int dy = minY - boxMinY + offset;
-    offsetPiecesVertically(list, count, dy+4);// +4:To prevent getting stuck
+    offsetPiecesVertically(list, count, dy);
 }
 
 static
@@ -3579,7 +3579,7 @@ void extendFortress(PieceEnv *env, Piece *p, int offh, int offv, int turn, int c
     }
 
 L_end:
-    addFortressPiece(env, FORTRESS_END, x, y, z, depth, facing, valid >= 0);
+    addFortressPiece(env, FORTRESS_END, x, y, z, depth, facing, 1);
 }
 
 static
@@ -3613,11 +3613,8 @@ void extendFortressPiece(PieceEnv *env, Piece *p)
         extendFortress(env, p, 1, 0,  0, 1);
     } else if (p->type == CORRIDOR_T_CROSSING) {
         int h = (p->rot == 0 || p->rot == 3) ? 5 : 1;
-        // avoid rng shift from recursion
-        int a = nextInt(8);
-        int b = nextInt(8);
-        extendFortress(env, p, h, 0, -1, a != 0);
-        extendFortress(env, p, h, 0,  1, b != 0);
+        extendFortress(env, p, h, 0, -1, nextInt(8) != 0);
+        extendFortress(env, p, h, 0,  1, nextInt(8) != 0);
     } else if (p->type == CORRIDOR_NETHER_WART) {
         extendFortress(env, p, 5, 3,  0, 1);
         extendFortress(env, p, 5, 11, 0, 1);
@@ -3681,6 +3678,35 @@ int getFortressPieces(Piece *list, int n, int mc, uint64_t seed, int chunkX, int
     
     moveInsideHeights(list, count, 48, 70);
     return count;
+}
+
+int getFortressSpawnerPos(const Piece *piece, Pos3 *spawner)
+{
+    if (piece == NULL || spawner == NULL || piece->type != BRIDGE_SPAWNER)
+        return 0;
+
+    spawner->y = piece->bb0.y + 5;
+    switch (piece->rot & 3)
+    {
+    case 0: // north
+        spawner->x = piece->bb0.x + 3;
+        spawner->z = piece->bb1.z - 5;
+        return 1;
+    case 1: // east
+        spawner->x = piece->bb0.x + 5;
+        spawner->z = piece->bb0.z + 3;
+        return 1;
+    case 2: // south
+        spawner->x = piece->bb0.x + 3;
+        spawner->z = piece->bb0.z + 5;
+        return 1;
+    case 3: // west
+        spawner->x = piece->bb1.x - 5;
+        spawner->z = piece->bb0.z + 3;
+        return 1;
+    default:
+        return 0;
+    }
 }
 
 //==============================================================================
@@ -3958,7 +3984,7 @@ static int pv_gen_component(PV_VStart *vs, int x,int y,int z,int facing,int dept
                 break;
             int idx = pv_create_building(vs, pw->vpType, x, y, z, facing, depth);
             if (idx<0)
-                break;
+                continue;
             pw->spawned++;
             vs->lastPlacedPWIdx = wi;
             if (pw->spawned >= pw->limit)
@@ -4111,8 +4137,9 @@ static int pv_facing_to_rot(int facing)
 int getPreVillagePieces(Piece *list, int n, uint64_t seed, int chunkX, int chunkZ)
 {
     static const int hf[4] = { PV_F_SOUTH, PV_F_WEST, PV_F_NORTH, PV_F_EAST };
-
-    setRegionSeed(seed, chunkX, chunkZ, 10387312);
+    int regX = chunkX < 0 ? chunkX - 40+1 : chunkX;
+    int regZ = chunkZ < 0 ? chunkZ - 40+1 : chunkZ;
+    setRegionSeed(seed, regX, regZ, 10387312);
     next(); // separation x
     next(); // separation z
 

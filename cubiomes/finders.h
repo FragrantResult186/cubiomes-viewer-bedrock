@@ -477,6 +477,7 @@ int getStrongholdPortalFrames(StrongholdPortalFrame *frames,
  * more than that. The number of generated pieces is given by the return value.
  */
 int getFortressPieces(Piece *list, int n, int mc, uint64_t seed, int chunkX, int chunkZ);
+int getFortressSpawnerPos(const Piece *piece, Pos3 *spawner);
 enum
 {   // Fortress piece types
     FORTRESS_START,

@@ -1573,13 +1573,17 @@ void QWorld::draw(QPainter& painter, int vw, int vh, qreal focusx, qreal focusz,
 
                         if (vp.type == Fortress && p.type == BRIDGE_SPAWNER)
                         {
-                            QRectF spawner = QRectF(px, py, blocks2pix, blocks2pix);
-                            spawner.translate((dx - blocks2pix) / 2, (dy - blocks2pix) / 2);
-                            static const Pos sp_off[4] = { {0,-1},{+1,0},{0,+1},{-1,0} };
-                            qreal offx = sp_off[p.rot].x - (p.bb0.x < 0);
-                            qreal offz = sp_off[p.rot].z - (p.bb0.z < 0);
-                            spawner.translate(blocks2pix * offx, blocks2pix * offz);
-                            painter.drawRect(spawner);
+                            Pos3 spawnerPos;
+                            if (getFortressSpawnerPos(&p, &spawnerPos))
+                            {
+                                QRectF spawner(
+                                    vw/2.0 + (spawnerPos.x - focusx) * blocks2pix,
+                                    vh/2.0 + (spawnerPos.z - focusz) * blocks2pix,
+                                    blocks2pix,
+                                    blocks2pix
+                                );
+                                painter.drawRect(spawner);
+                            }
                         }
                     }
 
