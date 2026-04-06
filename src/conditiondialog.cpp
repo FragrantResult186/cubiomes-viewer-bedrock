@@ -227,9 +227,9 @@ ConditionDialog::ConditionDialog(FormConditions *parent, MapView *mapview, Confi
         {
             LabeledRange *lr;
             if (wi.mc < MC_1_18)
-                lr = new LabeledRange(this, 0, 63);
+                lr = new LabeledRange(this, 0, 256);
             else
-                lr = new LabeledRange(this, -64, 63);
+                lr = new LabeledRange(this, -64, 320);
             climaterange[0][i] = lr;
             ui->gridHeightRange->addWidget(lr);
             on_comboHeightRange_currentIndexChanged(0);

@@ -113,6 +113,7 @@ public:
     void searchLockUi(bool lock);
 
     void setSearchMode(int mode);
+    void updateSearchTypeItems();
 
     bool is32bitMode() const;
     void updateTop32Column();

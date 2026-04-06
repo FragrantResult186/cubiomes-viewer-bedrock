@@ -12,6 +12,8 @@
 #include <QFileDialog>
 #include <QFontMetrics>
 #include <QMenu>
+#include <QStandardItemModel>
+#include <QListView>
 
 
 QVariant SeedTableModel::data(const QModelIndex& index, int role) const
@@ -543,6 +545,7 @@ void FormSearchControl::updateTop32Column()
 {
     bool hide = is32bitMode();
     ui->results->setColumnHidden(SeedTableModel::COL_TOP32, hide);
+    updateSearchTypeItems();
 }
 
 void FormSearchControl::on_comboSearchType_currentIndexChanged(int)
@@ -879,4 +882,18 @@ void FormSearchControl::keyReleaseEvent(QKeyEvent *event)
             pasteResults();
     }
     QWidget::keyReleaseEvent(event);
+}
+
+void FormSearchControl::updateSearchTypeItems()
+{
+    bool is64bit = parent && parent->is64bitSeedVersion();
+    int idx = ui->comboSearchType->findData(SEARCH_BLOCKS);
+    if (idx < 0) return;
+    auto *model = qobject_cast<QStandardItemModel*>(ui->comboSearchType->model());
+    if (model)
+        model->item(idx)->setEnabled(is64bit);
+    if (auto *view = qobject_cast<QListView*>(ui->comboSearchType->view()))
+        view->setRowHidden(idx, !is64bit);
+    if (!is64bit && ui->comboSearchType->currentData().toInt() == SEARCH_BLOCKS)
+        ui->comboSearchType->setCurrentIndex(ui->comboSearchType->findData(SEARCH_INC));
 }
