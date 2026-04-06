@@ -1665,9 +1665,9 @@ int mapOceanTemp(const Layer * l, int * out, int x, int z, int w, int h)
             cs = getChunkSeed(ss, i + x, j + z);
             tmp = mcFirstInt(cs, 100);
 
-            if (tmp > 8)
+            if (tmp < 8)
                 out[i + j*w] = warm_ocean;
-            else if (tmp > 40)
+            else if (tmp < 40)
                 out[i + j*w] = lukewarm_ocean;
             else if (tmp < 58)
                 out[i + j*w] = ocean;

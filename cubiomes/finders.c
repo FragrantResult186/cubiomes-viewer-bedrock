@@ -216,6 +216,9 @@ int getStructurePos(int structureType, int mc, uint64_t seed, int regX, int regZ
     case Ancient_City:
     case Treasure:
         *pos = getLargeStructurePos(sconf, seed, regX, regZ);
+        // bug? for some reason v1.4.2 treasures spawn at coords -2 from where they should be
+        if (structureType == Treasure && mc <= MC_1_4)
+            pos->x -= 2, pos->z -= 2;
         return 1;
 
     case Stronghold:
@@ -1198,11 +1201,11 @@ int isViableFeatureBiome(int mc, int structureType, int biomeID)
         return biomeID == snowy_plains || biomeID == snowy_taiga || biomeID == snowy_slopes;
 
     case Ocean_Ruin:
-        if (mc <= MC_1_4) return 0;
+        if (mc <= MC_1_2) return 0;
         return isOceanic(biomeID);
 
     case Shipwreck:
-        if (mc <= MC_1_4) return 0;
+        if (mc <= MC_1_2) return 0;
         return isOceanic(biomeID) || biomeID == beach || biomeID == snowy_beach;
 
     case Ruined_Portal:
@@ -1237,11 +1240,8 @@ int isViableFeatureBiome(int mc, int structureType, int biomeID)
         return biomeID == beach || biomeID == snowy_beach || biomeID == stony_shore;
 
     case Mineshaft:
-    case Stronghold:
-        return isOverworld(mc, biomeID);
-
     case Ravine:
-        if (mc >= MC_1_21_60) return isOverworld(mc, biomeID) && !isOceanic(biomeID);
+    case Stronghold:
         return isOverworld(mc, biomeID);
 
     case Lava_Lake:
@@ -1289,8 +1289,9 @@ int isViableFeatureBiome(int mc, int structureType, int biomeID)
     
     case Mansion:
         if (mc <= MC_1_0) return 0;
-        if (mc <= MC_1_21_50) return biomeID == dark_forest || biomeID == dark_forest_hills;
-        return biomeID == dark_forest || biomeID == dark_forest_hills || biomeID == pale_garden;
+        if (mc >= MC_1_21_60 && biomeID == pale_garden) return 1;
+        return (biomeID == dark_forest || biomeID == dark_forest_hills /*||
+                biomeID == lush_caves  || biomeID == dripstone_caves*/);
 
     case Fortress:
         return (biomeID == nether_wastes || biomeID == soul_sand_valley ||
@@ -1528,7 +1529,7 @@ int isViableStructurePos(int structureType, Generator *g, int x, int z, uint32_t
     case Ocean_Ruin:
     case Shipwreck:
     case Treasure:
-        if (g->mc <= MC_1_12) goto L_not_viable;
+        if (g->mc <= MC_1_2) goto L_not_viable;
         goto L_feature;
     case Igloo:
         if (g->mc <= MC_1_8) goto L_not_viable;
@@ -1624,7 +1625,7 @@ L_feature:
                     continue;
                 for (k = 0; k < 4; k++) {
                     id = samples[k];
-                    if (id == vv[i] || (id == meadow && vv[i] == plains)) {
+                    if (id == vv[i] || ((id == meadow || id == sunflower_plains) && vv[i] == plains)) {
                         viable = vv[i];
                         goto L_viable;
                     }
@@ -1700,29 +1701,26 @@ L_feature:
         {
             sampleX = chunkX * 16 + 8;
             sampleZ = chunkZ * 16 + 8;
-            uint64_t mansion_biomes = (1ULL << dark_forest) | (1ULL << dark_forest_hills);
-            if (g->mc < MC_1_18) 
+            uint64_t b = (1ULL << dark_forest);
+            uint64_t m = (1ULL << (dark_forest_hills - 128)/* |
+                          1ULL << (lush_caves - 128) |
+                          1ULL << (dripstone_caves - 128)*/);
+            if (g->mc < MC_1_18)
             {
-                if (!areBiomesViable(g, sampleX, 319>>2, sampleZ, 29, mansion_biomes, 0, approx))
+                if (!areBiomesViable(g, sampleX, 64, sampleZ, 32, b, m, approx))
                     goto L_not_viable;
             }
-            else 
+            else
             {
-                int offsets[][2] = {
-                    {-8, -8}, 
-                    { 8, -8}, 
-                    { 0,  0}, 
-                    {-8,  8}, 
-                    { 8,  8}
-                };
-                for (int i = 0; i < 5; i++)
-                {
-                    int checkX = (sampleX >> 2) + offsets[i][0];
-                    int checkZ = (sampleZ >> 2) + offsets[i][1];
-                    id = getBiomeAt(g, 4, checkX, 319>>2, checkZ);
-                    if (id < 0 || !isViableFeatureBiome(g->mc, structureType, id))
-                        goto L_not_viable;
-                }
+                if (g->mc >= MC_1_21_60)
+                    m |= (1ULL << pale_garden - 128);
+                SurfaceNoise sn;
+                initSurfaceNoise(&sn, DIM_OVERWORLD, g->seed);
+                float height;
+                int biome_id;
+                mapApproxHeight(&height, &biome_id, g, &sn, x >> 2, z >> 2, 1, 1);
+                if (!areBiomesViable(g, sampleX, (int)height>>2, sampleZ, 32, b, m, approx))
+                    goto L_not_viable;
             }
         }
         goto L_viable;
@@ -1765,7 +1763,7 @@ L_jigsaw:
         goto L_viable;
 
     case Ravine:
-        if (g->mc >= MC_1_21_60)
+        if (g->mc < MC_1_18 || g->mc >= MC_1_21_60)
             goto L_viable;
         id = getBiomeAt(g, 4, x>>2, 319>>2, z>>2);
         if (id < 0 || isOceanic(id))

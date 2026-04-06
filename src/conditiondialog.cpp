@@ -677,11 +677,9 @@ void ConditionDialog::updateMode()
     {
         ui->stackedWidget->setCurrentWidget(ui->pageVillage);
         bool pre111 = wi.mc < MC_1_11;
-        // 1.11以上ではabandoned/startpieceのUIを非表示
         ui->groupBoxVillage->setVisible(!pre111);
         ui->checkStartPieces->setEnabled(!pre111);
         ui->checkAbandoned->setEnabled(!pre111);
-        // houseリスト（blacksmith）は1.11未満のみ表示
         ui->groupBoxHouseList->setVisible(pre111);
     }
     else if (filterindex == F_FORTRESS)
