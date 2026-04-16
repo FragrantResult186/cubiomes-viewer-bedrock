@@ -6189,7 +6189,7 @@ int canBiomeGenerate(int layerId, int mc, uint32_t flags, int id)
                 return 0;
         }
     }
-    if (dofilter || (layerId == L_OCEAN_MIX_4 && mc >= MC_1_13))
+    if (dofilter || (layerId == L_OCEAN_MIX_4 && mc >= MC_1_4))
     {
         dofilter = 1;
     }

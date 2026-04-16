@@ -234,7 +234,8 @@ RESOURCES += \
 TRANSLATIONS += \
         rc/lang/en_US.ts \
         rc/lang/de_DE.ts \
-        rc/lang/zh_CN.ts
+        rc/lang/zh_CN.ts \
+        rc/lang/ja_JP.ts
 
 
 # enable network features with: qmake CONFIG+=with_network
