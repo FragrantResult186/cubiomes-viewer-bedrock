@@ -679,7 +679,7 @@ void ConditionDialog::updateMode()
         bool pre111 = wi.mc < MC_1_11;
         ui->groupBoxVillage->setVisible(!pre111);
         ui->checkStartPieces->setEnabled(!pre111);
-        ui->checkAbandoned->setEnabled(!pre111);
+        ui->checkAbandoned->setEnabled(true);
         ui->groupBoxHouseList->setVisible(pre111);
     }
     else if (filterindex == F_FORTRESS)

@@ -442,17 +442,17 @@
     <message>
         <location filename="../../src/util.cpp" line="133" />
         <source>Eroded Badlands</source>
-        <translation>侵食されたバッドランド</translation>
+        <translation>侵食された荒野</translation>
     </message>
     <message>
         <location filename="../../src/util.cpp" line="134" />
         <source>Modified Wooded Badlands Plateau</source>
-        <translation>変異した森のバッドランドの高原</translation>
+        <translation>変異した森のある荒野の高原</translation>
     </message>
     <message>
         <location filename="../../src/util.cpp" line="135" />
         <source>Modified Badlands Plateau</source>
-        <translation>変異したバッドランドの高原</translation>
+        <translation>変異した荒野の高原</translation>
     </message>
     <message>
         <location filename="../../src/util.cpp" line="137" />
@@ -1253,6 +1253,11 @@ yield each sampled position individually</source>
         <location filename="../../src/conditiondialog.ui" line="1673" />
         <source>Abandoned</source>
         <translation>廃村</translation>
+    </message>
+    <message>
+        <location filename="../../src/conditiondialog.ui" line="1673" />
+        <source>Blacksmith</source>
+        <translation>鍛冶屋</translation>
     </message>
     <message>
         <location filename="../../src/conditiondialog.ui" line="1716" />
