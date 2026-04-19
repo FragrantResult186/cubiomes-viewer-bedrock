@@ -82,17 +82,17 @@
             </property>
             <item>
              <property name="text">
-              <string>256 (Surface)</string>
+              <string>256</string>
              </property>
             </item>
             <item>
              <property name="text">
-              <string>128 (Nether Roof)</string>
+              <string>128</string>
              </property>
             </item>
             <item>
              <property name="text">
-              <string>62 (Sea Level)</string>
+              <string>62</string>
              </property>
             </item>
             <item>
@@ -132,7 +132,7 @@
             </item>
             <item>
              <property name="text">
-              <string>-64 (Bedrock)</string>
+              <string>-64</string>
              </property>
             </item>
            </widget>

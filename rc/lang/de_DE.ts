@@ -967,7 +967,7 @@
     <message>
         <location filename="../../src/conditiondialog.ui" line="711"/>
         <location filename="../../src/conditiondialog.ui" line="882"/>
-        <source>-64 (Bedrock)</source>
+        <source>-64</source>
         <translation></translation>
     </message>
     <message>
@@ -3521,7 +3521,7 @@ Trozdem fortfahren?</translation>
     </message>
     <message>
         <location filename="../../src/mainwindow.ui" line="142"/>
-        <source>-64 (Bedrock)</source>
+        <source>-64</source>
         <translation></translation>
     </message>
     <message>

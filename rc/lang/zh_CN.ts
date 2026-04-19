@@ -938,7 +938,7 @@
     <message>
         <location filename="../../src/conditiondialog.ui" line="711"/>
         <location filename="../../src/conditiondialog.ui" line="882"/>
-        <source>-64 (Bedrock)</source>
+        <source>-64</source>
         <translation>-64 (主世界基岩层)</translation>
     </message>
     <message>
@@ -3467,7 +3467,7 @@ Applies only to feature-structures of region-size = 32 and chunk-gap = 8, in par
     </message>
     <message>
         <location filename="../../src/mainwindow.ui" line="142"/>
-        <source>-64 (Bedrock)</source>
+        <source>-64</source>
         <translation>-64 (主世界基岩层)</translation>
     </message>
     <message>
