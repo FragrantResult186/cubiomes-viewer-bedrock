@@ -299,6 +299,14 @@ void getStructs(std::vector<VarPos> *out, const StructureConfig sconf,
                         vp.pieces[0].bb0.y = y; // height of end city pieces are relative to surface
                     }
                 }
+                else if (sconf.structType == Mineshaft)
+                {
+                    int biomeid = getBiomeAt(&g, 4, (i*16)>>2, 317>>2, (j*16)>>2);
+                    int n = getMineshaftPieces(pieces, sizeof(pieces)/sizeof(pieces[0]), wi.mc,
+                        wi.seed, p.x >> 4, p.z >> 4, isMesa(biomeid) ? MINESHAFT_MESA : MINESHAFT_NORMAL);
+                    if (n)
+                        vp.pieces.assign(pieces, pieces+n);
+                }
                 else if (sconf.structType == Ruined_Portal || sconf.structType == Ruined_Portal_N)
                 {
                     id = getBiomeAt(&g, 4, (p.x >> 2) + 2, 0, (p.z >> 2) + 2);
