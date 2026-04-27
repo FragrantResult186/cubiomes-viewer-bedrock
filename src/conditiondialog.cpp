@@ -805,7 +805,7 @@ void ConditionDialog::updateBiomeSelection()
     for (int i = 0, n = ui->comboScale->count(); i < n; i++)
     {
         ui->comboScale->setItemText(i, QString::asprintf("1:%d", 1 << (i*2)));
-        ui->comboScale->setItemData(i,　int(Qt::ItemIsEnabled | Qt::ItemIsSelectable), Qt::UserRole-1);
+        ui->comboScale->setItemData(i, int(Qt::ItemIsEnabled | Qt::ItemIsSelectable), Qt::UserRole-1);
     }
     // ui->comboScale->setItemData(0, false, Qt::UserRole-1); // disable voronoi
 
