@@ -329,6 +329,8 @@ ConditionDialog::ConditionDialog(FormConditions *parent, MapView *mapview, Confi
     ui->comboScale->setCurrentIndex(1);
     onCheckStartChanged(false);
     on_comboClimatePara_currentIndexChanged(0);
+    connect(ui->checkRavineAngle, &QCheckBox::toggled, this, &ConditionDialog::setRavineAngleControlsEnabled);
+    setRavineAngleControlsEnabled(ui->checkRavineAngle->isChecked());
 
     if (initcond)
     {
@@ -449,14 +451,7 @@ ConditionDialog::ConditionDialog(FormConditions *parent, MapView *mapview, Confi
             const double R2D = 180.0 / M_PI;
             bool hasAngle = cond.varflags & Condition::VAR_ANGLE;
             ui->checkRavineAngle->setChecked(hasAngle);
-            ui->labelYaw->setEnabled(hasAngle);
-            ui->labelYawTo->setEnabled(hasAngle);
-            ui->spinRavineYawMin->setEnabled(hasAngle);
-            ui->spinRavineYawMax->setEnabled(hasAngle);
-            ui->labelPitch->setEnabled(hasAngle);
-            ui->labelPitchTo->setEnabled(hasAngle);
-            ui->spinRavinePitchMin->setEnabled(hasAngle);
-            ui->spinRavinePitchMax->setEnabled(hasAngle);
+            setRavineAngleControlsEnabled(hasAngle);
             if (hasAngle) {
                 ui->spinRavineYawMin->setValue(cond.ravineYawMin * R2D);
                 ui->spinRavineYawMax->setValue(cond.ravineYawMax * R2D);
@@ -468,16 +463,6 @@ ConditionDialog::ConditionDialog(FormConditions *parent, MapView *mapview, Confi
                 ui->spinRavinePitchMin->setValue(-45.0);
                 ui->spinRavinePitchMax->setValue(45.0);
             }
-            connect(ui->checkRavineAngle, &QCheckBox::toggled, this, [this](bool checked){
-                ui->labelYaw->setEnabled(checked);
-                ui->labelYawTo->setEnabled(checked);
-                ui->spinRavineYawMin->setEnabled(checked);
-                ui->spinRavineYawMax->setEnabled(checked);
-                ui->labelPitch->setEnabled(checked);
-                ui->labelPitchTo->setEnabled(checked);
-                ui->spinRavinePitchMin->setEnabled(checked);
-                ui->spinRavinePitchMax->setEnabled(checked);
-            });
         }
         ui->checkUnderground->setCheckState(totristate(cond.varflags, Condition::VAR_UNDERGROUND));
         for (int i = 0; i < 20; i++)
@@ -715,6 +700,7 @@ void ConditionDialog::updateMode()
     {
         ui->stackedWidget->setCurrentWidget(ui->pageRavine);
         ui->checkMegaRavine->setEnabled(wi.mc >= MC_1_2);
+        setRavineAngleControlsEnabled(ui->checkRavineAngle->isChecked());
     }
     else if (filterindex == F_STRONGHOLD)
     {
@@ -774,6 +760,18 @@ void ConditionDialog::updateMode()
     textDescription->setText(QApplication::translate("Filter", ft.description));
 }
 
+void ConditionDialog::setRavineAngleControlsEnabled(bool enabled)
+{
+    ui->labelYaw->setEnabled(enabled);
+    ui->labelYawTo->setEnabled(enabled);
+    ui->spinRavineYawMin->setEnabled(enabled);
+    ui->spinRavineYawMax->setEnabled(enabled);
+    ui->labelPitch->setEnabled(enabled);
+    ui->labelPitchTo->setEnabled(enabled);
+    ui->spinRavinePitchMin->setEnabled(enabled);
+    ui->spinRavinePitchMax->setEnabled(enabled);
+}
+
 static QString layerText(int layerId)
 {
     switch (layerId)
@@ -807,7 +805,7 @@ void ConditionDialog::updateBiomeSelection()
     for (int i = 0, n = ui->comboScale->count(); i < n; i++)
     {
         ui->comboScale->setItemText(i, QString::asprintf("1:%d", 1 << (i*2)));
-        ui->comboScale->setItemData(i, QVariant::Invalid, Qt::UserRole-1);
+        ui->comboScale->setItemData(i,　int(Qt::ItemIsEnabled | Qt::ItemIsSelectable), Qt::UserRole-1);
     }
     // ui->comboScale->setItemData(0, false, Qt::UserRole-1); // disable voronoi
 

@@ -59,6 +59,7 @@ public:
     void initComboY(QComboBox *cb, int y);
     void updateMode();
     void updateBiomeSelection();
+    void setRavineAngleControlsEnabled(bool enabled);
     bool warnIfBad(Condition cond);
 
     void onReject();
