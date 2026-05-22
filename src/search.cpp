@@ -270,7 +270,7 @@ SearchThreadEnv::SearchThreadEnv()
 , seed()
 , surfdim(DIM_UNDEF)
 , octaves()
-, searchpass(PASS_FULL_32)
+, searchpass(PASS_FAST_32)
 , stop()
 , l_states()
 {
@@ -766,9 +766,9 @@ int testTreeAt(
     Pos                       * path            // ok trigger positions
 )
 {
-    if (pass != PASS_FULL_32)
+    if (pass != PASS_FAST_32)
     {   // do a fast 32-bit check before continuing with slower checks
-        env->searchpass = PASS_FULL_32;
+        env->searchpass = PASS_FAST_32;
         int st = _testTreeAt(at, env, NULL, 0);
         if (st == COND_FAILED)
             return st;
@@ -2207,6 +2207,8 @@ L_qm_any:
         cent->x = (x1 + x2) >> 1;
         cent->z = (z1 + z2) >> 1;
         if (imax) *imax = 1;
+        if (env->searchpass == PASS_FAST_32)
+            return COND_MAYBE_POS_VALID;
         if (env->searchpass == PASS_FULL_32)
         {
             if (env->mc < MC_1_18 || cond->type != F_BIOME_256_OTEMP)
@@ -2271,7 +2273,7 @@ L_qm_any:
         cent->x = (x1 + x2) >> 1;
         cent->z = (z1 + z2) >> 1;
         if (imax) *imax = 1;
-        if (env->searchpass == PASS_FULL_32)
+        if (env->searchpass == PASS_FAST_32)
             return COND_MAYBE_POS_VALID;
         // the Nether and End require only the 48-bit seed
         // (except voronoi uses the full 64-bits)

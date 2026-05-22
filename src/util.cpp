@@ -158,7 +158,7 @@ QString getBiomeDisplay(int mc, int id)
     case cherry_grove:                  return QApplication::translate("Biome", "Cherry Grove");
     // 1.21.50 (Winter Drop Version TBA)
     case pale_garden:                   return QApplication::translate("Biome", "Pale Garden");
-    // 26.20
+    // 26.30
     case sulfur_caves:                  return QApplication::translate("Biome", "Sulfur Caves");
     }
     const char *name = biome2str(mc, id);

@@ -907,7 +907,7 @@ bool SearchMaster::requestItem(SearchWorker *item)
                 for (; low <= MASK32 && !stop; low++)
                 {
                     env.setSeed(low);
-                    if (testTreeAt(origin, &env, PASS_FULL_64, nullptr)
+                    if (testTreeAt(origin, &env, PASS_FAST_32, nullptr)
                         != COND_FAILED)
                     {
                         break;
