@@ -875,9 +875,8 @@ static bool isVariantOk(const Condition *c, SearchThreadEnv *e, int stype, int v
 
     if (stype == Village)
     {
-        if (e->mc < MC_1_10) return true;
         getVariant(&sv, stype, e->mc, e->seed, pos->x, pos->z, varbiome);
-        if (c->varflags & Condition::VAR_ABANODONED)
+        if (c->varflags & Condition::VAR_ABANDONED)
         {
             if ((c->varflags & Condition::VAR_NOT) && sv.abandoned)
                 return false;

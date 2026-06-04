@@ -608,7 +608,7 @@ struct /*__attribute__((packed))*/ Condition
     };
     enum { // variant flags
         VAR_WITH_START  = 0x0001, // restrict start piece index and biome
-        VAR_ABANODONED  = 0x0002, // zombie village
+        VAR_ABANDONED   = 0x0002, // zombie village
         VAR_ENDSHIP     = 0x0004, // end city ship
         VAR_DENSE_BB    = 0x0008, // fortress with a 2x2 arrangement of start/crossings
         VAR_NOT         = 0x0010, // invert flag (e.g. not abandoned)

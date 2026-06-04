@@ -1014,25 +1014,24 @@ void SearchWorker::run()
                             emit result(seed);
                     }
                 }
-                if (ie == len) // done
-                    break;
             }
             else
             {
-                int32_t s = (int32_t)sstart;
-                int64_t end = (int64_t)s + (int64_t)scnt - 1;
-                if (end > INT32_MAX) end = INT32_MAX;
-
-                for (; s <= (int32_t)end && !*env.stop; ++s)
+                seed = sstart;
+                for (int i = 0; i < scnt; i++)
                 {
-                    uint64_t us = (uint32_t)s;
-                    env.setSeed(us);
-                    if (testTreeAt(origin, &env, PASS_FULL_32, nullptr) !=
-                        COND_FAILED)
+                    env.setSeed(seed);
+                    if (testTreeAt(origin, &env, PASS_FULL_32, nullptr) != COND_FAILED)
                     {
                         if (!*env.stop)
-                            emit result(us);
+                            emit result(seed);
                     }
+
+                    if (seed >= MASK32)
+                    {   // done
+                        break;
+                    }
+                    seed++;
                 }
             }
         }

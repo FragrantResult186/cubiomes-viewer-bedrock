@@ -443,7 +443,7 @@ ConditionDialog::ConditionDialog(FormConditions *parent, MapView *mapview, Confi
         };
         ui->checkStartPieces->setChecked(cond.varflags & Condition::VAR_WITH_START);
         ui->checkDenseBB->setChecked(cond.varflags & Condition::VAR_DENSE_BB);
-        ui->checkAbandoned->setCheckState(totristate(cond.varflags, Condition::VAR_ABANODONED));
+        ui->checkAbandoned->setCheckState(totristate(cond.varflags, Condition::VAR_ABANDONED));
         ui->checkEndShip->setCheckState(totristate(cond.varflags, Condition::VAR_ENDSHIP));
         ui->checkBasement->setCheckState(totristate(cond.varflags, Condition::VAR_BASEMENT));
         ui->checkMegaRavine->setCheckState(totristate(cond.varflags, Condition::VAR_MEGARAVINE));
@@ -1256,7 +1256,7 @@ void ConditionDialog::onAccept()
         c.varflags |= Condition::VAR_WITH_START;
     if (ui->checkDenseBB->isChecked())
         c.varflags |= Condition::VAR_DENSE_BB;
-    c.varflags |= tristateFlags(ui->checkAbandoned, Condition::VAR_ABANODONED);
+    c.varflags |= tristateFlags(ui->checkAbandoned, Condition::VAR_ABANDONED);
     c.varflags |= tristateFlags(ui->checkEndShip, Condition::VAR_ENDSHIP);
     c.varflags |= tristateFlags(ui->checkBasement, Condition::VAR_BASEMENT);
     c.varflags |= tristateFlags(ui->checkMegaRavine, Condition::VAR_MEGARAVINE);
