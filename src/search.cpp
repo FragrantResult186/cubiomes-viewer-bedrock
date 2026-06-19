@@ -902,6 +902,7 @@ static bool isVariantOk(const Condition *c, SearchThreadEnv *e, int stype, int v
             if (sv.underground != (!(c->varflags & Condition::VAR_NOT))) return false;
         }
         if (!(c->varflags & Condition::VAR_WITH_START)) return true;
+        stype = Ruined_Portal;
     }
     else if (stype == Igloo)
     {
