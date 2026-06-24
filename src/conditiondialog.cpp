@@ -213,6 +213,8 @@ ConditionDialog::ConditionDialog(FormConditions *parent, MapView *mapview, Confi
     ui->checkBasement->setStyleSheet(tristyle);
     ui->checkMegaRavine->setStyleSheet(tristyle);
     ui->checkUnderground->setStyleSheet(tristyle);
+    ui->checkLargeRuin->setStyleSheet(tristyle);
+    ui->checkClusterRuin->setStyleSheet(tristyle);
 
     memset(climaterange, 0, sizeof(climaterange));
     memset(climatecomplete, 0, sizeof(climatecomplete));
@@ -331,6 +333,9 @@ ConditionDialog::ConditionDialog(FormConditions *parent, MapView *mapview, Confi
     on_comboClimatePara_currentIndexChanged(0);
     connect(ui->checkRavineAngle, &QCheckBox::toggled, this, &ConditionDialog::setRavineAngleControlsEnabled);
     setRavineAngleControlsEnabled(ui->checkRavineAngle->isChecked());
+    
+    connect(ui->checkLargeRuin, &QCheckBox::stateChanged, this, &ConditionDialog::updateMode);
+    connect(ui->checkClusterRuin, &QCheckBox::stateChanged, this, &ConditionDialog::updateMode);
 
     if (initcond)
     {
@@ -441,6 +446,9 @@ ConditionDialog::ConditionDialog(FormConditions *parent, MapView *mapview, Confi
         auto totristate = [](uint16_t st, uint16_t msk) {
             return (st & msk) ? (st & Condition::VAR_NOT) ? Qt::Checked : Qt::PartiallyChecked : Qt::Unchecked;
         };
+        auto totristateEx = [](uint16_t st, uint16_t msk, uint16_t notmsk) {
+            return (st & msk) ? (st & notmsk) ? Qt::Checked : Qt::PartiallyChecked : Qt::Unchecked;
+        };
         ui->checkStartPieces->setChecked(cond.varflags & Condition::VAR_WITH_START);
         ui->checkDenseBB->setChecked(cond.varflags & Condition::VAR_DENSE_BB);
         ui->checkAbandoned->setCheckState(totristate(cond.varflags, Condition::VAR_ABANDONED));
@@ -474,6 +482,8 @@ ConditionDialog::ConditionDialog(FormConditions *parent, MapView *mapview, Confi
         }
 
         ui->checkBlacksmith->setCheckState(totristate(cond.varflags, Condition::VAR_BLACKSMITH));
+        ui->checkLargeRuin->setCheckState(totristateEx(cond.varflags, Condition::VAR_LARGE, Condition::VAR_LARGE_NOT));
+        ui->checkClusterRuin->setCheckState(totristateEx(cond.varflags, Condition::VAR_CLUSTER, Condition::VAR_CLUSTER_NOT));
 
         int *lim = (int*) &cond.limok[0][0];
         if (lim[0] == 0 && !memcmp(lim, lim + 1, (6 * 4 - 1) * sizeof(int)))
@@ -701,6 +711,25 @@ void ConditionDialog::updateMode()
         ui->stackedWidget->setCurrentWidget(ui->pageRavine);
         ui->checkMegaRavine->setEnabled(wi.mc >= MC_1_2);
         setRavineAngleControlsEnabled(ui->checkRavineAngle->isChecked());
+    }
+    else if (filterindex == F_RUINS)
+    {
+        ui->stackedWidget->setCurrentWidget(ui->pageRuins);
+        ui->checkLargeRuin->setEnabled(wi.mc >= MC_1_0);
+        bool largeExcluded = (ui->checkLargeRuin->checkState() == Qt::Checked);
+        bool clusterRequiredOrAny =
+            (ui->checkClusterRuin->checkState() == Qt::PartiallyChecked) ||
+            (ui->checkClusterRuin->checkState() == Qt::Unchecked);
+        ui->checkClusterRuin->setEnabled(!largeExcluded && wi.mc >= MC_1_0);
+        // if (ui->spinClusterSize)
+        // {
+        //     bool enableSize = clusterRequiredOrAny && !largeExcluded;
+        //     ui->spinClusterSize->setEnabled(enableSize);
+        //     if (!enableSize || ui->checkClusterRuin->checkState() == Qt::Checked)
+        //     {
+        //         ui->spinClusterSize->setValue(0); // force 0 when excluding cluster
+        //     }
+        // }
     }
     else if (filterindex == F_STRONGHOLD)
     {
@@ -1093,6 +1122,17 @@ static uint16_t tristateFlags(QCheckBox *cb, uint16_t flg)
     return ret;
 }
 
+static uint16_t tristateFlagsEx(QCheckBox *cb, uint16_t flg, uint16_t notflg)
+{
+    uint16_t ret = 0;
+    if (cb->checkState() != Qt::Unchecked)
+    {
+        ret |= flg;
+        if (cb->checkState() == Qt::Checked)
+            ret |= notflg;
+    }
+    return ret;
+}
 
 void ConditionDialog::onReject()
 {
@@ -1260,6 +1300,8 @@ void ConditionDialog::onAccept()
     c.varflags |= tristateFlags(ui->checkEndShip, Condition::VAR_ENDSHIP);
     c.varflags |= tristateFlags(ui->checkBasement, Condition::VAR_BASEMENT);
     c.varflags |= tristateFlags(ui->checkMegaRavine, Condition::VAR_MEGARAVINE);
+    c.varflags |= tristateFlagsEx(ui->checkLargeRuin, Condition::VAR_LARGE, Condition::VAR_LARGE_NOT);
+    c.varflags |= tristateFlagsEx(ui->checkClusterRuin, Condition::VAR_CLUSTER, Condition::VAR_CLUSTER_NOT);
     if (ui->checkRavineAngle->isChecked()) {
         const float D2R = (float)(M_PI / 180.0);
         c.varflags |= Condition::VAR_ANGLE;

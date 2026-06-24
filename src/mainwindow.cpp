@@ -186,6 +186,7 @@ MainWindow::MainWindow(QString sessionpath, QString resultspath, QWidget *parent
     addMapAction(D_ANCIENTCITY);
     addMapAction(D_TRAILRUINS);
     addMapAction(D_CHAMBERS);
+    addMapAction(D_CAMP);
     ui->toolBar->addSeparator();
     addMapAction(D_FORTESS);
     addMapAction(D_BASTION);

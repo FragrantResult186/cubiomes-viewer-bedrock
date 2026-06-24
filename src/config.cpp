@@ -160,6 +160,7 @@ QString mapopt2display(int opt)
     case D_ANCIENTCITY: return QApplication::translate("Map", "Ancient City");
     case D_TRAILRUINS:  return QApplication::translate("Map", "Trail Ruins");
     case D_CHAMBERS:    return QApplication::translate("Map", "Trial Chambers");
+    case D_CAMP:        return QApplication::translate("Map", "Abandoned Camp");
     case D_PORTAL:      return QApplication::translate("Map", "Ruined Portal");
     case D_PORTALN:     return QApplication::translate("Map", "Ruined Portal (Nether)");
     case D_SPAWN:       return QApplication::translate("Map", "Spawn");
@@ -197,6 +198,7 @@ const char *mapopt2str(int opt) // to resource string
     case D_ANCIENTCITY: return "ancient_city";
     case D_TRAILRUINS:  return "trails";
     case D_CHAMBERS:    return "chambers";
+    case D_CAMP:        return "camp";
     case D_PORTAL:      return "portal";
     case D_PORTALN:     return "portaln";
     case D_SPAWN:       return "spawn";
@@ -232,6 +234,7 @@ int str2mapopt(const char *s) // from resource string
     if (!strcmp(s, "ancient_city")) return D_ANCIENTCITY;
     if (!strcmp(s, "trails"))       return D_TRAILRUINS;
     if (!strcmp(s, "chambers"))     return D_CHAMBERS;
+    if (!strcmp(s, "camp"))         return D_CAMP;
     if (!strcmp(s, "portal"))       return D_PORTAL;
     if (!strcmp(s, "portaln"))      return D_PORTALN;
     if (!strcmp(s, "spawn"))        return D_SPAWN;
@@ -267,6 +270,7 @@ int mapopt2stype(int opt)
     case D_ANCIENTCITY: return Ancient_City;
     case D_TRAILRUINS:  return Trail_Ruins;
     case D_CHAMBERS:    return Trial_Chambers;
+    case D_CAMP:        return Abandoned_Camp;
     case D_PORTAL:      return Ruined_Portal;
     case D_PORTALN:     return Ruined_Portal_N;
     case D_FORTESS:     return Fortress;

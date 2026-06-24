@@ -95,6 +95,7 @@ enum
     F_BIOME_SAMPLE,
     F_NOISE_SAMPLE,
     F_CHAMBERS,
+    F_CAMP,
     // new filters should be added here at the end to keep some downwards compatibility
     FILTER_MAX,
 };
@@ -527,6 +528,13 @@ static const struct FilterList : private FilterInfo
             ""
         };
 
+        list[F_CAMP] = FilterInfo{
+            CAT_STRUCT, 1, LOC_RAD, Abandoned_Camp, 1, BR_CLUST, MC_26_40, MC_NEWEST, 0, 0, disp++,
+            "camp",
+            QT_TRANSLATE_NOOP("Filter", "Abandoned camp"),
+            ""
+        };
+
         list[F_PORTAL] = FilterInfo{
             CAT_STRUCT, 0, LOC_RAD, Ruined_Portal, 1, BR_CLUST, MC_1_16, MC_NEWEST, 0, 0, disp++,
             "portal",
@@ -617,6 +625,10 @@ struct /*__attribute__((packed))*/ Condition
         VAR_UNDERGROUND = 0x0080, // underground portal
         VAR_BLACKSMITH  = 0x0100, // has blacksmith (preVillage)
         VAR_ANGLE       = 0x0200, // ravine angle
+        VAR_LARGE       = 0x0400, // large ocean ruin
+        VAR_CLUSTER     = 0x0800, // clustered ruin
+        VAR_LARGE_NOT   = 0x1000, // invert flag for VAR_LARGE
+        VAR_CLUSTER_NOT = 0x2000, // invert flag for VAR_CLUSTER
     };
     enum { // min/max
         // legacy 0:min<= 1:max>= 2:min>= 3:max<=

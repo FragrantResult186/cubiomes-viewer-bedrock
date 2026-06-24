@@ -960,6 +960,21 @@ static bool isVariantOk(const Condition *c, SearchThreadEnv *e, int stype, int v
         getVariant(&sv, stype, e->mc, e->seed, chunkPos.x, chunkPos.z, varbiome);
         return (c->varflags & Condition::VAR_NOT ? !sv.giant : sv.giant);
     }
+    else if (stype == Ocean_Ruin)
+    {
+        getVariant(&sv, stype, e->mc, e->seed, pos->x, pos->z, varbiome);
+        if (c->varflags & Condition::VAR_LARGE)
+        {
+            bool wantLarge = !(c->varflags & Condition::VAR_LARGE_NOT);
+            if (sv.large != wantLarge) return false;
+        }
+        if (c->varflags & Condition::VAR_CLUSTER)
+        {
+            bool wantClustered = !(c->varflags & Condition::VAR_CLUSTER_NOT);
+            if (sv.cluster != wantClustered) return false;
+        }
+        return true;
+    }
     else
     {
         return true;
@@ -1473,6 +1488,7 @@ L_qm_any:
     case F_ANCIENT_CITY:
     case F_TRAILS:
     case F_CHAMBERS:
+    case F_CAMP:
 
     case F_FORTRESS:
     case F_BASTION:
@@ -1583,7 +1599,14 @@ L_qm_any:
                         if (!isViableEndCityTerrain(&env->g, &env->sn, pc.x, pc.z))
                             continue;
                     }
-                    if (cond->varflags)
+                    else if (cond->varflags && st == Ocean_Ruin)
+                    {
+                        env->init4Dim(DIM_OVERWORLD);
+                        int biomeId = getBiomeAt(&env->g, 4, (pc.x >> 2) + 2, 0, (pc.z >> 2) + 2);
+                        if (!isVariantOk(cond, env, st, biomeId, &pc))
+                            continue;
+                    }
+                    else if (cond->varflags)
                     {
                         if (!isVariantOk(cond, env, st, id, &pc))
                             continue;

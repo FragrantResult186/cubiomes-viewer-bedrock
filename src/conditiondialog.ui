@@ -2212,6 +2212,75 @@ QPushButton:hover {
            </item>
           </layout>
          </widget>
+         <widget class="QWidget" name="pageRuins">
+           <layout class="QGridLayout" name="gridLayoutOceanRuin">
+             <item row="0" column="0">
+               <widget class="QGroupBox" name="groupBoxOceanRuin">
+                 <property name="title">
+                   <string>Ocean Ruins variants</string>
+                 </property>
+                 <layout class="QGridLayout" name="gridLayoutOceanRuin2">
+                   <item row="0" column="0">
+                     <widget class="QCheckBox" name="checkLargeRuin">
+                       <property name="text">
+                         <string>Large ruin</string>
+                       </property>
+                       <property name="tristate">
+                         <bool>true</bool>
+                       </property>
+                     </widget>
+                   </item>
+                   <item row="1" column="0">
+                     <widget class="QCheckBox" name="checkClusterRuin">
+                       <property name="text">
+                         <string>Clustered ruin</string>
+                       </property>
+                       <property name="tristate">
+                         <bool>true</bool>
+                       </property>
+                     </widget>
+                   </item>
+                   <!-- <item row="2" column="0">
+                     <widget class="QLabel" name="labelClusterSize">
+                       <property name="text">
+                         <string>Cluster size (4-8):</string>
+                       </property>
+                     </widget>
+                   </item>
+                   <item row="2" column="1">
+                     <widget class="QSpinBox" name="spinClusterSize">
+                       <property name="minimum">
+                         <number>0</number>
+                       </property>
+                       <property name="maximum">
+                         <number>8</number>
+                       </property>
+                       <property name="value">
+                         <number>0</number>
+                       </property>
+                     </widget>
+                   </item> -->
+                   <item row="3" column="0" colspan="2">
+                     <spacer name="verticalSpacer">
+                       <property name="orientation">
+                         <enum>Qt::Vertical</enum>
+                       </property>
+                       <property name="sizeType">
+                         <enum>QSizePolicy::Expanding</enum>
+                       </property>
+                       <property name="sizeHint" stdset="0">
+                         <size>
+                           <width>20</width>
+                           <height>40</height>
+                         </size>
+                       </property>
+                     </spacer>
+                   </item>
+                 </layout>
+               </widget>
+             </item>
+           </layout>
+         </widget>
          <widget class="QWidget" name="pageLinkedGateway">
           <layout class="QVBoxLayout">
            <item>
