@@ -629,6 +629,7 @@ struct /*__attribute__((packed))*/ Condition
         VAR_CLUSTER     = 0x0800, // clustered ruin
         VAR_LARGE_NOT   = 0x1000, // invert flag for VAR_LARGE
         VAR_CLUSTER_NOT = 0x2000, // invert flag for VAR_CLUSTER
+        VAR_SECRET_CHEST = 0x4000, // has secret chest (camp)
     };
     enum { // min/max
         // legacy 0:min<= 1:max>= 2:min>= 3:max<=

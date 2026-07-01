@@ -24,6 +24,92 @@ QString getStartPieceName(int stype, const StructureVariant *sv)
     return name;
 }
 
+static const int g_camp_tent_biome_ids[] = {
+    bamboo_jungle,
+    birch_forest,
+    cherry_grove,
+    dappled_forest,
+    flower_forest,
+    forest,
+    meadow,
+    old_growth_birch_forest,
+    old_growth_pine_taiga,
+    old_growth_spruce_taiga,
+    pale_garden,
+    savanna,
+    snowy_taiga,
+    sparse_jungle,
+    swamp,
+    taiga,
+    windswept_forest,
+    wooded_badlands,
+    -1 // sentinel
+};
+
+static const char* prefixes[3] = {
+    "campsite_default_barrel",
+    "campsite_default_chest",
+    "campsite_default_special"
+};
+
+// alphabetical order
+static const int g_pool_order[15] = {1,10,11,12,13,14,15,2,3,4,5,6,7,8,9};
+static const int g_tent_pool_order[10] = {1,10,2,3,4,5,6,7,8,9};
+
+QString getCampTentName(int biomeID, int idx)
+{
+    if (idx < 0 || idx >= 10)
+        return QString();
+    for (int i = 0; g_camp_tent_biome_ids[i] != -1; i++) {
+        if (g_camp_tent_biome_ids[i] == biomeID) {
+            const char* key = biome2str(MC_NEWEST, biomeID);
+            if (key == NULL) {
+                key = "unknown"; // fallback
+            }
+            static char buf[128];
+            snprintf(buf, sizeof(buf), "tent_%s_%d", key, g_tent_pool_order[idx]);
+            return QString(buf);
+        }
+    }
+
+    const char* key = biome2str(MC_NEWEST, biomeID);
+    if (key) {
+        static char buf[128];
+        snprintf(buf, sizeof(buf), "tent_%s_%d", key, g_tent_pool_order[idx % 10]);
+        return QString(buf);
+    }
+    return QString();
+}
+
+QString getCampsiteName(int biomeID, int idx)
+{
+    if (idx < 0 || idx >= 48)
+        return NULL;
+    if (idx < 3)
+    {
+        for (int i = 0; g_camp_tent_biome_ids[i] != -1; i++) {
+            if (g_camp_tent_biome_ids[i] == biomeID) {
+                const char* key = biome2str(MC_NEWEST, biomeID);
+                if (key == NULL) {
+                    key = "unknown"; // fallback
+                }
+                static char buf[128];
+                snprintf(buf, sizeof(buf), "campsite_%s_%d", key, idx + 1);
+                return buf;
+            }
+        }
+        return NULL;
+    }
+
+    int cat = (idx - 3) / 15;
+    int pos = (idx - 3) % 15;
+    int num = g_pool_order[pos];
+
+    static char buf[128];
+    snprintf(buf, sizeof(buf), "%s_%d", prefixes[cat], num);
+    return buf;
+}
+
 QString getBiomeDisplay(int mc, int id)
 {
     if (mc >= MC_1_18)

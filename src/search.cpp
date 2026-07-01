@@ -581,9 +581,10 @@ int _testTreeAt(
             const Condition& cb = tree->condvec[b];
             std::vector<char> saved_branches;
             saved_branches.swap(const_cast<ConditionTree*>(tree)->references[b]);
-            Pos bpos = at;
-            int icnt = 1;
-            int sta = testCondAt(at, env, &bpos, &icnt, &cb);
+            inst[0] = at;
+            int icnt = std::min(std::max(cb.count, 1), MAX_INSTANCES);
+            int sta = testCondAt(at, env, &inst[0], &icnt, &cb);
+            Pos bpos = inst[0];
             if (*env->stop)
             {
                 saved_branches.swap(const_cast<ConditionTree*>(tree)->references[b]);
@@ -611,10 +612,10 @@ int _testTreeAt(
                     cb_norange.z1 = -30000000;
                     cb_norange.x2 =  30000000;
                     cb_norange.z2 =  30000000;
-                    Pos bpos2 = at;
-                    int icnt2 = 1;
-                    testCondAt(at, env, &bpos2, &icnt2, &cb_norange);
-                    bpos = bpos2;
+                    inst[0] = at;
+                    int icnt2 = std::min(std::max(cb_norange.count, 1), MAX_INSTANCES);
+                    testCondAt(at, env, &inst[0], &icnt2, &cb_norange);
+                    bpos = inst[0];
                     //qDebug() << "NOT: spawn FAILED (out of range), actual pos=" << bpos.x << bpos.z;
                 }
                 // 'st' remains COND_OK
@@ -972,6 +973,23 @@ static bool isVariantOk(const Condition *c, SearchThreadEnv *e, int stype, int v
         {
             bool wantClustered = !(c->varflags & Condition::VAR_CLUSTER_NOT);
             if (sv.cluster != wantClustered) return false;
+        }
+        return true;
+    }
+    else if (stype == Abandoned_Camp)
+    {
+        getVariant(&sv, stype, e->mc, e->seed, pos->x, pos->z, varbiome);
+        if (c->varflags & Condition::VAR_SECRET_CHEST)
+        {
+            bool wantSecretChest = !(c->varflags & Condition::VAR_NOT);
+            if ((bool)sv.secret != wantSecretChest) return false;
+        }
+        if (c->varflags & Condition::VAR_WITH_START)
+        {
+            uint64_t tentMask = c->varstart & 0x3FFULL;
+            uint64_t campMask = (c->varstart >> 10) & ((1ULL << 48) - 1);
+            if (tentMask && !(tentMask & (1ULL << sv.start))) return false;
+            if (campMask && !(campMask & (1ULL << sv.size))) return false;
         }
         return true;
     }

@@ -13,8 +13,11 @@
 #include <QDir>
 #include <QFileDialog>
 #include <QFontMetricsF>
+#include <QGridLayout>
+#include <QGroupBox>
 #include <QInputDialog>
 #include <QIntValidator>
+#include <QScrollArea>
 #include <QScrollBar>
 #include <QSpacerItem>
 #include <QStandardPaths>
@@ -168,6 +171,61 @@ ConditionDialog::ConditionDialog(FormConditions *parent, MapView *mapview, Confi
         for (int i = 0; i < 20; i++) gatewaycboxes[i]->setChecked(false);
     });
 
+    {
+        QString tristyleLocal =
+            "QCheckBox::indicator:indeterminate          { image: url(:/icons/check_include.png); }\n"
+            "QCheckBox::indicator:checked                { image: url(:/icons/check_exclude.png); }\n"
+            "QCheckBox::indicator:indeterminate:disabled { image: url(:/icons/check_include_d.png); }\n"
+            "QCheckBox::indicator:checked:disabled       { image: url(:/icons/check_exclude_d.png); }\n";
+
+        pageCamp = new QWidget();
+        QVBoxLayout *vbox = new QVBoxLayout(pageCamp);
+
+        checkSecretChest = new QCheckBox(tr("Secret chest"), pageCamp);
+        checkSecretChest->setTristate(true);
+        checkSecretChest->setStyleSheet(tristyleLocal);
+        vbox->addWidget(checkSecretChest);
+
+        checkStartCamp = new QCheckBox(tr("Filter by tent / campsite"), pageCamp);
+        vbox->addWidget(checkStartCamp);
+
+        QGroupBox *grpTent = new QGroupBox(tr("Tent shape"), pageCamp);
+        QGridLayout *gridTent = new QGridLayout(grpTent);
+        for (int i = 0; i < 10; i++)
+        {
+            QCheckBox *cb = new QCheckBox(getCampTentName(forest, i), grpTent);
+            gridTent->addWidget(cb, i / 2, i % 2);
+            campTentBoxes.push_back(cb);
+        }
+        QScrollArea *scrollTent = new QScrollArea(pageCamp);
+        scrollTent->setWidget(grpTent);
+        scrollTent->setWidgetResizable(true);
+        scrollTent->setMaximumHeight(140);
+        vbox->addWidget(scrollTent);
+
+        QGroupBox *grpSite = new QGroupBox(tr("Campsite"), pageCamp);
+        QGridLayout *gridSite = new QGridLayout(grpSite);
+        for (int i = 0; i < 48; i++)
+        {
+            QCheckBox *cb = new QCheckBox(getCampsiteName(forest, i), grpSite);
+            gridSite->addWidget(cb, i / 3, i % 3);
+            campSiteBoxes.push_back(cb);
+        }
+        QScrollArea *scrollSite = new QScrollArea(pageCamp);
+        scrollSite->setWidget(grpSite);
+        scrollSite->setWidgetResizable(true);
+        vbox->addWidget(scrollSite);
+
+        auto updateCampEnabled = [this](int){
+            bool en = checkStartCamp->isChecked();
+            for (QCheckBox *cb : qAsConst(campTentBoxes)) cb->setEnabled(en);
+            for (QCheckBox *cb : qAsConst(campSiteBoxes)) cb->setEnabled(en);
+        };
+        connect(checkStartCamp, &QCheckBox::stateChanged, this, updateCampEnabled);
+        updateCampEnabled(0);
+
+        ui->stackedWidget->addWidget(pageCamp);
+    }
 
     addTempCat(Oceanic, tr("Oceanic"));
     addTempCat(Warm, tr("Warm"));
@@ -481,6 +539,13 @@ ConditionDialog::ConditionDialog(FormConditions *parent, MapView *mapview, Confi
             cb->setChecked(cond.varstart & (1ULL << idx));
         }
 
+        checkStartCamp->setChecked(cond.varflags & Condition::VAR_WITH_START);
+        checkSecretChest->setCheckState(totristate(cond.varflags, Condition::VAR_SECRET_CHEST));
+        for (int i = 0; i < campTentBoxes.size(); i++)
+            campTentBoxes[i]->setChecked(cond.varstart & (1ULL << i));
+        for (int i = 0; i < campSiteBoxes.size(); i++)
+            campSiteBoxes[i]->setChecked(cond.varstart & (1ULL << (10 + i)));
+
         ui->checkBlacksmith->setCheckState(totristate(cond.varflags, Condition::VAR_BLACKSMITH));
         ui->checkLargeRuin->setCheckState(totristateEx(cond.varflags, Condition::VAR_LARGE, Condition::VAR_LARGE_NOT));
         ui->checkClusterRuin->setCheckState(totristateEx(cond.varflags, Condition::VAR_CLUSTER, Condition::VAR_CLUSTER_NOT));
@@ -705,6 +770,10 @@ void ConditionDialog::updateMode()
     {
         ui->stackedWidget->setCurrentWidget(ui->pageIgloo);
         ui->checkBasement->setEnabled(wi.mc >= MC_1_0);
+    }
+    else if (filterindex == F_CAMP)
+    {
+        ui->stackedWidget->setCurrentWidget(pageCamp);
     }
     else if (filterindex == F_RAVINE)
     {
@@ -1319,6 +1388,20 @@ void ConditionDialog::onAccept()
         if (!cb->isChecked())
             continue;
         c.varstart |= 1ULL << (cb->sp - g_start_pieces);
+    }
+
+    if (checkStartCamp->isChecked())
+        c.varflags |= Condition::VAR_WITH_START;
+    c.varflags |= tristateFlags(checkSecretChest, Condition::VAR_SECRET_CHEST);
+    {
+        uint64_t tentMask = 0, campMask = 0;
+        for (int i = 0; i < campTentBoxes.size(); i++)
+            if (campTentBoxes[i]->isChecked())
+                tentMask |= (1ULL << i);
+        for (int i = 0; i < campSiteBoxes.size(); i++)
+            if (campSiteBoxes[i]->isChecked())
+                campMask |= (1ULL << i);
+        c.varstart |= tentMask | (campMask << 10);
     }
 
     c.varflags |= tristateFlags(ui->checkBlacksmith, Condition::VAR_BLACKSMITH);

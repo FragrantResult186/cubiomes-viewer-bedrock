@@ -20,6 +20,7 @@ const QPixmap& getMapIcon(int opt, VarPos *vp)
     static QPixmap iconmegaravine_underwater;
     static QPixmap iconship;
     static QPixmap iconbasement;
+    static QPixmap iconcampsecret;
     static QMutex mutex;
 
     mutex.lock();
@@ -36,6 +37,7 @@ const QPixmap& getMapIcon(int opt, VarPos *vp)
         iconmegaravine_underwater = getPix("megaravine_underwater", w);
         iconship                  = getPix("end_ship", w);
         iconbasement              = getPix("igloo_basement", w);
+        iconcampsecret            = getPix("campsecret", w);
     }
     mutex.unlock();
 
@@ -47,6 +49,8 @@ const QPixmap& getMapIcon(int opt, VarPos *vp)
         return iconbasement;
     if ((opt == D_PORTAL || opt == D_PORTALN) && vp->v.giant)
         return icongiantportal;
+    if (opt == D_CAMP && vp->v.secret)
+        return iconcampsecret;
     if (opt == D_RAVINE)
     {
         if (vp->v.giant && vp->v.underwater)
@@ -169,6 +173,17 @@ QStringList VarPos::detail() const
         sinfo.append(QString::asprintf("radius=%d", v.size));
         if (v.cracked)
             sinfo.append("cracked");
+    }
+    else if (type == Abandoned_Camp)
+    {
+        QString tent = getCampTentName(v.biome, v.start);
+        QString camp = getCampsiteName(v.biome, v.size);        
+        if (!tent.isEmpty())
+            sinfo.append("tent=" + tent);
+        if (!camp.isEmpty())
+            sinfo.append("camp=" + camp);
+        if (v.secret)
+            sinfo.append("secret_chest");
     }
     return sinfo;
 }

@@ -133,6 +133,12 @@ private:
 
     QCheckBox *gatewaycboxes[20];
 
+    QWidget *pageCamp;
+    QCheckBox *checkStartCamp;
+    QCheckBox *checkSecretChest;
+    QVector<QCheckBox*> campTentBoxes;  // bit index 0-9  (tent shape)
+    QVector<QCheckBox*> campSiteBoxes;  // bit index 0-47 (campsite decor)
+
 public:
     MapView *mapview;
     Config *config;
