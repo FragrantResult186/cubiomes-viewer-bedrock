@@ -20,7 +20,9 @@ const QPixmap& getMapIcon(int opt, VarPos *vp)
     static QPixmap iconmegaravine_underwater;
     static QPixmap iconship;
     static QPixmap iconbasement;
-    static QPixmap iconcampsecret;
+    static QPixmap icondzombie;
+    static QPixmap icondskeleton;
+    static QPixmap icondspider;
     static QMutex mutex;
 
     mutex.lock();
@@ -37,7 +39,9 @@ const QPixmap& getMapIcon(int opt, VarPos *vp)
         iconmegaravine_underwater = getPix("megaravine_underwater", w);
         iconship                  = getPix("end_ship", w);
         iconbasement              = getPix("igloo_basement", w);
-        iconcampsecret            = getPix("campsecret", w);
+        icondzombie               = getPix("dungeon_zombie", w);
+        icondskeleton             = getPix("dungeon_skeleton", w);
+        icondspider               = getPix("dungeon_spider", w);
     }
     mutex.unlock();
 
@@ -49,8 +53,6 @@ const QPixmap& getMapIcon(int opt, VarPos *vp)
         return iconbasement;
     if ((opt == D_PORTAL || opt == D_PORTALN) && vp->v.giant)
         return icongiantportal;
-    if (opt == D_CAMP && vp->v.secret)
-        return iconcampsecret;
     if (opt == D_RAVINE)
     {
         if (vp->v.giant && vp->v.underwater)
@@ -65,6 +67,15 @@ const QPixmap& getMapIcon(int opt, VarPos *vp)
         for (Piece& p : vp->pieces)
             if (p.type == END_SHIP)
                 return iconship;
+    }
+    if (opt == D_DUNGEON)
+    {
+        switch(vp->v.start)
+        {
+        case 0: return icondskeleton;
+        case 1: return icondzombie;
+        case 2: return icondspider;
+        }
     }
     return icons[opt];
 }
@@ -174,6 +185,15 @@ QStringList VarPos::detail() const
         if (v.cracked)
             sinfo.append("cracked");
     }
+    else if (type == Dungeon)
+    {
+        sinfo.append(QString::asprintf("x=%d", p.x));
+        sinfo.append(QString::asprintf("y=%d", v.y));
+        sinfo.append(QString::asprintf("z=%d", p.z));
+        static const char *mobnames[] = { "skeleton", "zombie", "spider" };
+        if (v.start < 3)
+            sinfo.append(QString("mob=") + mobnames[v.start]);
+    }
     else if (type == Abandoned_Camp)
     {
         QString tent = getCampTentName(v.biome, v.start);
@@ -239,11 +259,25 @@ void getStructs(std::vector<VarPos> *out, const StructureConfig sconf,
     //       isViableStructurePos would have to be const (due to threading)
     Generator g;
     SurfaceNoise sn;
+    TerrainNoise tn;
+    TerrainShaper ts;
+    CaveNoise cn;
     if (!nogen)
     {
         setupGenerator(&g, wi.mc, wi.large);
         applySeed(&g, dim, wi.seed);
         initSurfaceNoise(&sn, dim, wi.seed);
+    }
+    if (sconf.structType == Dungeon)
+    {
+        if (nogen)
+        {
+            setupGenerator(&g, wi.mc, wi.large);
+            applySeed(&g, dim, wi.seed);
+        }
+        initTerrainNoise(&tn, wi.seed);
+        initTerrainShaper(&ts);
+        initCaveNoise(&cn, wi.seed);
     }
 
     if (!nogen && sconf.structType == Stronghold)// village sh
@@ -265,6 +299,29 @@ void getStructs(std::vector<VarPos> *out, const StructureConfig sconf,
     {
         for (int j = sj0; j <= sj1; j++)
         {
+            if (sconf.structType == Dungeon)
+            {
+                // a chunk can contain multiple dungeons (4 attempts below
+                // y=0, plus 10 above), so collect and render all of them
+                // instead of stopping at the first one found.
+                
+                DungeonData dps[DUNGEON_MAX_PER_CHUNK];
+                int cnt = getDungeons(&g.bn, &tn, &ts, &cn, wi.mc, wi.seed, i, j, dps, DUNGEON_MAX_PER_CHUNK);
+                if (cnt > DUNGEON_MAX_PER_CHUNK)
+                    cnt = DUNGEON_MAX_PER_CHUNK;
+                for (int k = 0; k < cnt; k++)
+                {
+                    Pos dpos = Pos{dps[k].pos.x, dps[k].pos.z};
+                    if (dpos.x < x0 || dpos.x >= x1 || dpos.z < z0 || dpos.z >= z1)
+                        continue;
+                    VarPos vp = VarPos(dpos, sconf.structType);
+                    vp.v.y = (int16_t) dps[k].pos.y;
+                    vp.v.start = (uint8_t) dps[k].mobType;
+                    out->push_back(vp);
+                }
+                continue;
+            }
+
             Pos p;
             int ok = getStructurePos(sconf.structType, wi.mc, wi.seed, i, j, &p);
             if (sconf.structType == End_Gateway)
@@ -301,6 +358,16 @@ void getStructs(std::vector<VarPos> *out, const StructureConfig sconf,
                         wi.seed, p.x >> 4, p.z >> 4);
                     if (n)
                         vp.pieces.assign(pieces, pieces+n);
+                }
+                else if (sconf.structType == Outpost)
+                {
+                    float y = 0;
+                    mapApproxHeight(&y, &id, &g, &sn, p.x >> 2, p.z >> 2, 1, 1);
+                    int n = getOutpostPieces(pieces, wi.seed, p.x >> 4, p.z >> 4);
+                    if (n) {
+                        vp.pieces.assign(pieces, pieces+n);
+                        vp.pieces[0].bb0.y = (int)y;
+                    }
                 }
                 else if (sconf.structType == End_City)
                 {
@@ -1536,7 +1603,7 @@ void QWorld::draw(QPainter& painter, int vw, int vh, qreal focusx, qreal focusz,
             continue;
         if (lopt.mode == LOPT_STRUCTS)
         {
-            if (sopt == D_GEODE || sopt == D_WELL)
+            if (sopt == D_GEODE || sopt == D_WELL || sopt == D_DUNGEON)
                 continue;
         }
 

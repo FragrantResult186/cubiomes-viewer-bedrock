@@ -119,6 +119,7 @@ enum {
     D_LAVALAKE,
     D_WELL,
     D_GEODE,
+    D_DUNGEON,
     D_OUTPOST,
     D_ANCIENTCITY,
     D_TRAILRUINS,

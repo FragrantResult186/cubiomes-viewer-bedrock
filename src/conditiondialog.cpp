@@ -37,6 +37,8 @@ ConditionDialog::ConditionDialog(FormConditions *parent, MapView *mapview, Confi
 {
     memset(&cond, 0, sizeof(cond));
     ui->setupUi(this);
+    ui->checkLargeRuin->setTristate(true);
+    ui->checkClusterRuin->setTristate(true);
     ui->lineSummary->setMaxLength(sizeof(cond.text) - 1);
 
     connect(ui->buttonBox, &QDialogButtonBox::accepted, this, &ConditionDialog::onAccept);
@@ -533,18 +535,19 @@ ConditionDialog::ConditionDialog(FormConditions *parent, MapView *mapview, Confi
         ui->checkUnderground->setCheckState(totristate(cond.varflags, Condition::VAR_UNDERGROUND));
         for (int i = 0; i < 20; i++)
             gatewaycboxes[i]->setChecked(cond.gwmask == 0 || (cond.gwmask & (1u << i)));
+        bool loadIsCamp = (cond.type == F_CAMP);
         for (VariantCheckBox *cb : qAsConst(variantboxes))
         {
             int idx = cb->sp - g_start_pieces;
-            cb->setChecked(cond.varstart & (1ULL << idx));
+            cb->setChecked(!loadIsCamp && (cond.varstart & (1ULL << idx)));
         }
 
-        checkStartCamp->setChecked(cond.varflags & Condition::VAR_WITH_START);
+        checkStartCamp->setChecked(loadIsCamp && (cond.varflags & Condition::VAR_WITH_START));
         checkSecretChest->setCheckState(totristate(cond.varflags, Condition::VAR_SECRET_CHEST));
         for (int i = 0; i < campTentBoxes.size(); i++)
-            campTentBoxes[i]->setChecked(cond.varstart & (1ULL << i));
+            campTentBoxes[i]->setChecked(loadIsCamp && (cond.varstart & (1ULL << i)));
         for (int i = 0; i < campSiteBoxes.size(); i++)
-            campSiteBoxes[i]->setChecked(cond.varstart & (1ULL << (10 + i)));
+            campSiteBoxes[i]->setChecked(loadIsCamp && (cond.varstart & (1ULL << (10 + i))));
 
         ui->checkBlacksmith->setCheckState(totristate(cond.varflags, Condition::VAR_BLACKSMITH));
         ui->checkLargeRuin->setCheckState(totristateEx(cond.varflags, Condition::VAR_LARGE, Condition::VAR_LARGE_NOT));
@@ -1361,7 +1364,8 @@ void ConditionDialog::onAccept()
             c.gwmask = 0;
     }
     c.varflags = c.varstart = 0;
-    if (ui->checkStartPieces->isChecked())
+    bool onCampPage = (ui->stackedWidget->currentWidget() == pageCamp);
+    if (!onCampPage && ui->checkStartPieces->isChecked())
         c.varflags |= Condition::VAR_WITH_START;
     if (ui->checkDenseBB->isChecked())
         c.varflags |= Condition::VAR_DENSE_BB;
@@ -1390,7 +1394,7 @@ void ConditionDialog::onAccept()
         c.varstart |= 1ULL << (cb->sp - g_start_pieces);
     }
 
-    if (checkStartCamp->isChecked())
+    if (onCampPage && checkStartCamp->isChecked())
         c.varflags |= Condition::VAR_WITH_START;
     c.varflags |= tristateFlags(checkSecretChest, Condition::VAR_SECRET_CHEST);
     {

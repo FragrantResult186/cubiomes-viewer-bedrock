@@ -181,6 +181,7 @@ MainWindow::MainWindow(QString sessionpath, QString resultspath, QWidget *parent
     addMapAction(D_TREASURE);
     addMapAction(D_WELL);
     addMapAction(D_GEODE);
+    addMapAction(D_DUNGEON);
     addMapAction(D_OUTPOST);
     addMapAction(D_PORTAL);
     addMapAction(D_ANCIENTCITY);

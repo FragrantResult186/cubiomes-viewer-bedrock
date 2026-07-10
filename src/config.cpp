@@ -156,6 +156,7 @@ QString mapopt2display(int opt)
     case D_LAVALAKE:    return QApplication::translate("Map", "Lava Lake");
     case D_WELL:        return QApplication::translate("Map", "Desert Well");
     case D_GEODE:       return QApplication::translate("Map", "Geode");
+    case D_DUNGEON:     return QApplication::translate("Map", "Dungeon");
     case D_OUTPOST:     return QApplication::translate("Map", "Pillager Outpost");
     case D_ANCIENTCITY: return QApplication::translate("Map", "Ancient City");
     case D_TRAILRUINS:  return QApplication::translate("Map", "Trail Ruins");
@@ -194,6 +195,7 @@ const char *mapopt2str(int opt) // to resource string
     case D_LAVALAKE:    return "lavalake";
     case D_WELL:        return "well";
     case D_GEODE:       return "geode";
+    case D_DUNGEON:     return "dungeon";
     case D_OUTPOST:     return "outpost";
     case D_ANCIENTCITY: return "ancient_city";
     case D_TRAILRUINS:  return "trails";
@@ -230,6 +232,7 @@ int str2mapopt(const char *s) // from resource string
     if (!strcmp(s, "lavalake"))     return D_LAVALAKE;
     if (!strcmp(s, "well"))         return D_WELL;
     if (!strcmp(s, "geode"))        return D_GEODE;
+    if (!strcmp(s, "dungeon"))      return D_DUNGEON;
     if (!strcmp(s, "outpost"))      return D_OUTPOST;
     if (!strcmp(s, "ancient_city")) return D_ANCIENTCITY;
     if (!strcmp(s, "trails"))       return D_TRAILRUINS;
@@ -266,6 +269,7 @@ int mapopt2stype(int opt)
     case D_STRONGHOLD:  return Stronghold;
     case D_WELL:        return Desert_Well;
     case D_GEODE:       return Geode;
+    case D_DUNGEON:     return Dungeon;
     case D_OUTPOST:     return Outpost;
     case D_ANCIENTCITY: return Ancient_City;
     case D_TRAILRUINS:  return Trail_Ruins;
@@ -310,6 +314,8 @@ int MapConfig::getTileSize(int opt) const
         return 128 * 16;
     if (opt == D_GATEWAY)
         return 64 * 16;
+    if (opt == D_DUNGEON)
+        return 16 * 16;
     return 512 * 16;
 }
 
@@ -330,6 +336,7 @@ void MapConfig::reset()
     opts[D_LAVALAKE].scale = 16;
     opts[D_STRONGHOLD].scale = 320;
     opts[D_GATEWAY].scale = 4;
+    opts[D_DUNGEON].scale = 2;
     zoomEnabled = false;
 }
 
