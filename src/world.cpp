@@ -20,6 +20,7 @@ const QPixmap& getMapIcon(int opt, VarPos *vp)
     static QPixmap iconmegaravine_underwater;
     static QPixmap iconship;
     static QPixmap iconbasement;
+    static QPixmap iconcampsecret;
     static QPixmap icondzombie;
     static QPixmap icondskeleton;
     static QPixmap icondspider;
@@ -39,6 +40,7 @@ const QPixmap& getMapIcon(int opt, VarPos *vp)
         iconmegaravine_underwater = getPix("megaravine_underwater", w);
         iconship                  = getPix("end_ship", w);
         iconbasement              = getPix("igloo_basement", w);
+        iconcampsecret            = getPix("campsecret", w);
         icondzombie               = getPix("dungeon_zombie", w);
         icondskeleton             = getPix("dungeon_skeleton", w);
         icondspider               = getPix("dungeon_spider", w);
@@ -53,6 +55,8 @@ const QPixmap& getMapIcon(int opt, VarPos *vp)
         return iconbasement;
     if ((opt == D_PORTAL || opt == D_PORTALN) && vp->v.giant)
         return icongiantportal;
+    if (opt == D_CAMP && vp->v.secret)
+        return iconcampsecret;
     if (opt == D_RAVINE)
     {
         if (vp->v.giant && vp->v.underwater)
@@ -72,8 +76,8 @@ const QPixmap& getMapIcon(int opt, VarPos *vp)
     {
         switch(vp->v.start)
         {
-        case 0: return icondskeleton;
-        case 1: return icondzombie;
+        case 0: return icondzombie;
+        case 1: return icondskeleton;
         case 2: return icondspider;
         }
     }
