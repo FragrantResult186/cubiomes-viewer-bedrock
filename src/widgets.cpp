@@ -399,6 +399,17 @@ void LabeledRange::setValues(int p0, int p1)
     rangeChanged();
 }
 
+void LabeledRange::setRange(int vmin, int vmax)
+{
+    slider->vmin = vmin;
+    slider->vmax = vmax;
+    slider->setRange(vmin, vmax);
+    if (slider->pos0 < vmin || slider->pos0 > vmax) slider->pos0 = vmin;
+    if (slider->pos1 < vmin || slider->pos1 > vmax) slider->pos1 = vmax;
+    slider->update();
+    rangeChanged();
+}
+
 void LabeledRange::setHighlight(QColor inner, QColor outer)
 {
     slider->colinner = inner;

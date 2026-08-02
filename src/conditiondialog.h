@@ -61,6 +61,7 @@ public:
     void updateBiomeSelection();
     void setRavineAngleControlsEnabled(bool enabled);
     bool warnIfBad(Condition cond);
+    static bool getFeatureYRange(int filterindex, int mc, int *ymin, int *ymax);
 
     void onReject();
     void onAccept();
@@ -138,6 +139,8 @@ private:
     QCheckBox *checkSecretChest;
     QVector<QCheckBox*> campTentBoxes;  // bit index 0-9  (tent shape)
     QVector<QCheckBox*> campSiteBoxes;  // bit index 0-47 (campsite decor)
+
+    LabeledRange *ravineHeightRange = nullptr;
 
 public:
     MapView *mapview;

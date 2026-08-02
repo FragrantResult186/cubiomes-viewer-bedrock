@@ -938,15 +938,15 @@ static bool isVariantOk(const Condition *c, SearchThreadEnv *e, int stype, int v
             int j, adj = 0;
             for (j = 0; j < b; j++)
             {
-                if (p[i].bb0.y != p[j].bb0.y) continue;
-                if (p[i].bb1.x != p[j].bb1.x && p[i].bb1.x+1 != p[j].bb0.x) continue;
-                if (p[i].bb1.z != p[j].bb1.z && p[i].bb1.z+1 != p[j].bb0.z) continue;
+                if (p[i].bb.minY != p[j].bb.minY) continue;
+                if (p[i].bb.maxX != p[j].bb.maxX && p[i].bb.maxX+1 != p[j].bb.minX) continue;
+                if (p[i].bb.maxZ != p[j].bb.maxZ && p[i].bb.maxZ+1 != p[j].bb.minZ) continue;
                 adj++;
             }
             if (adj >= 4)
             {
-                pos->x = p[i].bb1.x;
-                pos->z = p[i].bb1.z;
+                pos->x = p[i].bb.maxX;
+                pos->z = p[i].bb.maxZ;
                 return true;
             }
         }
@@ -1201,10 +1201,16 @@ static int checkFeatureCluster(
     int rx2 = x2 >> 4, rz2 = z2 >> 4;
     Pos *p = getPosBuf(0);
     int icnt, xt, zt;
+    int ymin = cond->limok[NP_DEPTH][0];
+    int ymax = cond->limok[NP_DEPTH][1];
+    bool checkDepth = (varStype != 0) && (ymin != INT_MIN || ymax != INT_MAX);
 
     if (imax && cond->count > 0)
     {   // just check there are at least *inst (== cond->count) instances
-        *imax = icnt = getFn(env->mc, env->seed, rx1, rz1, rx2, rz2, cent, *imax);
+        icnt = getFn(env->mc, env->seed, rx1, rz1, rx2, rz2, cent, MAX_INSTANCES);
+        if (icnt > MAX_INSTANCES)
+            icnt = MAX_INSTANCES; // 'cent' only has MAX_INSTANCES slots physically
+        *imax = icnt;
 
         if (varStype && cond->varflags)
         {
@@ -1236,7 +1242,19 @@ static int checkFeatureCluster(
                 }
             }
         }
-        if (useViableCheck)
+        if (checkDepth)
+        {
+            int j = 0;
+            for (int i = 0; i < icnt; i++)
+            {
+                StructureVariant sv;
+                getVariant(&sv, varStype, env->mc, env->seed, cent[i].x, cent[i].z, -1);
+                if (sv.y >= ymin && sv.y <= ymax)
+                    cent[j++] = cent[i];
+            }
+            *imax = icnt = j;
+        }
+        if (useViableCheck && icnt == 1)
         {
             applySeed(&env->g, DIM_OVERWORLD, env->seed);
             if (!isViableStructurePos(Lava_Lake, &env->g, pc.x, pc.z, 0))
@@ -1248,6 +1266,8 @@ static int checkFeatureCluster(
     else
     {   // we need the average position of all instances
         icnt = getFn(env->mc, env->seed, rx1, rz1, rx2, rz2, &p[0], MAX_INSTANCES);
+        if (icnt > MAX_INSTANCES)
+            icnt = MAX_INSTANCES; // 'p' only has MAX_INSTANCES slots physically
 
         if (varStype && cond->varflags)
         {
@@ -1271,6 +1291,13 @@ static int checkFeatureCluster(
             }
             if (cond->skipref && p[i].x == at.x && p[i].z == at.z)
                 continue;
+            if (checkDepth)
+            {
+                StructureVariant sv;
+                getVariant(&sv, varStype, env->mc, env->seed, p[i].x, p[i].z, -1);
+                if (sv.y < ymin || sv.y > ymax)
+                    continue;
+            }
             xt += p[i].x;
             zt += p[i].z;
             j++;
@@ -1714,37 +1741,70 @@ L_qm_any:
 
 
     case F_MINESHAFT:
-        return checkFeatureCluster(
-            at, env, cent, imax, cond,
-            x1, z1, x2, z2, rmax, pc,
-            [](int mc, uint64_t seed, int rx1, int rz1, int rx2, int rz2, Pos *out, int max) {
-                return getMineshafts(mc, seed, rx1, rz1, rx2, rz2, out, max);
-            },
-            /*varStype=*/0, /*useViableCheck=*/false);
-
-    case F_RAVINE:
     {
         int rx1 = x1 >> 4, rz1 = z1 >> 4, rx2 = x2 >> 4, rz2 = z2 >> 4;
         Pos *p = getPosBuf(0);
-        int icnt = getRavines(env->mc, env->seed, rx1, rz1, rx2, rz2, p, MAX_INSTANCES);
+        int icnt = getMineshafts(env->mc, env->seed, rx1, rz1, rx2, rz2, p, MAX_INSTANCES);
+        if (icnt > MAX_INSTANCES)
+            icnt = MAX_INSTANCES; // 'p' only has MAX_INSTANCES slots physically
+        int ymin = cond->limok[NP_DEPTH][0];
+        int ymax = cond->limok[NP_DEPTH][1];
+        bool checkDepth = (ymin != INT_MIN || ymax != INT_MAX);
+        if (checkDepth)
+            env->init4Dim(DIM_OVERWORLD);
         int matched = 0;
         for (int i = 0; i < icnt; i++) {
             if (rmax) {
                 int dx = p[i].x - at.x, dz = p[i].z - at.z;
                 if (dx*(int64_t)dx + dz*(int64_t)dz >= rmax) continue;
             }
-            if (cond->varflags & Condition::VAR_MEGARAVINE) {
-                StructureVariant sv;
-                getVariant(&sv, Ravine, env->mc, env->seed, p[i].x, p[i].z, -1);
-                bool isgiant = sv.giant;
-                bool wantgiant = !(cond->varflags & Condition::VAR_NOT);
-                if (isgiant != wantgiant) continue;
+            if (cond->skipref && p[i].x == at.x && p[i].z == at.z) continue;
+            if (checkDepth) {
+                int biomeid = getBiomeAt(&env->g, 4, p[i].x>>2, 317>>2, p[i].z>>2);
+                int mstype = isMesa(biomeid) ? MINESHAFT_MESA : MINESHAFT_NORMAL;
+                Piece pieces[1024];
+                int n = getMineshaftPieces(pieces, sizeof(pieces)/sizeof(pieces[0]),
+                    env->mc, env->seed, p[i].x >> 4, p[i].z >> 4, mstype);
+                if (n <= 0 || pieces[0].bb.minY < ymin || pieces[0].bb.minY > ymax)
+                    continue;
             }
-            if (cond->varflags & Condition::VAR_ANGLE) {
+            matched++;
+            if (cent && matched == 1) *cent = p[i];
+        }
+        if (imax) *imax = matched;
+        if (matched >= cond->count) return COND_OK;
+        return COND_FAILED;
+    }
+
+    case F_RAVINE:
+    {
+        int rx1 = x1 >> 4, rz1 = z1 >> 4, rx2 = x2 >> 4, rz2 = z2 >> 4;
+        Pos *p = getPosBuf(0);
+        int icnt = getRavines(env->mc, env->seed, rx1, rz1, rx2, rz2, p, MAX_INSTANCES);
+        if (icnt > MAX_INSTANCES)
+            icnt = MAX_INSTANCES; // 'p' only has MAX_INSTANCES slots physically
+        int matched = 0;
+        int ymin = cond->limok[NP_DEPTH][0];
+        int ymax = cond->limok[NP_DEPTH][1];
+        bool checkDepth = (ymin != INT_MIN || ymax != INT_MAX);
+        for (int i = 0; i < icnt; i++) {
+            if (rmax) {
+                int dx = p[i].x - at.x, dz = p[i].z - at.z;
+                if (dx*(int64_t)dx + dz*(int64_t)dz >= rmax) continue;
+            }
+            if ((cond->varflags & (Condition::VAR_MEGARAVINE | Condition::VAR_ANGLE)) || checkDepth) {
                 StructureVariant sv;
                 getVariant(&sv, Ravine, env->mc, env->seed, p[i].x, p[i].z, -1);
-                if (sv.yaw   < cond->ravineYawMin   || sv.yaw   > cond->ravineYawMax)   continue;
-                if (sv.pitch < cond->ravinePitchMin || sv.pitch > cond->ravinePitchMax) continue;
+                if (cond->varflags & Condition::VAR_MEGARAVINE) {
+                    bool isgiant = sv.giant;
+                    bool wantgiant = !(cond->varflags & Condition::VAR_NOT);
+                    if (isgiant != wantgiant) continue;
+                }
+                if (cond->varflags & Condition::VAR_ANGLE) {
+                    if (sv.yaw   < cond->ravineYawMin   || sv.yaw   > cond->ravineYawMax)   continue;
+                    if (sv.pitch < cond->ravinePitchMin || sv.pitch > cond->ravinePitchMax) continue;
+                }
+                if (checkDepth && (sv.y < ymin || sv.y > ymax)) continue;
             }
             matched++;
             if (cent && matched == 1) *cent = p[i];
@@ -1761,7 +1821,7 @@ L_qm_any:
             [](int mc, uint64_t seed, int rx1, int rz1, int rx2, int rz2, Pos *out, int max) {
                 return getGeodes(mc, seed, rx1, rz1, rx2, rz2, out, max);
             },
-            /*varStype=*/0, /*useViableCheck=*/false);
+            /*varStype=*/Geode, /*useViableCheck=*/false);
 
     case F_LAVALAKE:
     {
@@ -1922,7 +1982,7 @@ L_qm_any:
                             {
                                 if (pieces[pi].type == SH_START)
                                 {
-                                    portalY = pieces[pi].bb0.y;
+                                    portalY = pieces[pi].bb.minY;
                                     break;
                                 }
                             }
@@ -1988,7 +2048,7 @@ L_qm_any:
                         {
                             if (pieces[pi].type == SH_START)
                             {
-                                portalY = pieces[pi].bb0.y;
+                                portalY = pieces[pi].bb.minY;
                                 break;
                             }
                         }

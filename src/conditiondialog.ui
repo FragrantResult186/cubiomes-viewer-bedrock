@@ -2194,7 +2194,21 @@ QPushButton:hover {
                 </property>
                </widget>
               </item>
-              <item row="4" column="0" colspan="4">
+              <item row="4" column="0">
+               <widget class="QLabel" name="labelRavineY">
+                <property name="text">
+                 <string>Y range</string>
+                </property>
+               </widget>
+              </item>
+              <item row="4" column="1" colspan="3">
+               <layout class="QGridLayout" name="gridRavineHeightRange">
+                <property name="spacing">
+                 <number>0</number>
+                </property>
+               </layout>
+              </item>
+              <item row="5" column="0" colspan="4">
                <spacer name="verticalSpacer_10">
                 <property name="orientation">
                  <enum>Qt::Vertical</enum>
