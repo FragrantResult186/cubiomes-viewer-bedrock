@@ -389,9 +389,9 @@ void MapView::showContextMenu(const QPoint &pos)
         if (vp.pieces.size() > 0)
         {
             const Piece& pc = vp.pieces[0];
-            midx = (pc.bb0.x + pc.bb1.x) >> 1;
-            midy = (pc.bb0.y) + 1;
-            midz = (pc.bb0.z + pc.bb1.z) >> 1;
+            midx = (pc.bb.minX + pc.bb.maxX) >> 1;
+            midy = (pc.bb.minY) + 1;
+            midz = (pc.bb.minZ + pc.bb.maxZ) >> 1;
         }
         else
         {

@@ -402,14 +402,14 @@ static const struct FilterList : private FilterInfo
         };
 
         list[F_MINESHAFT] = FilterInfo{
-            CAT_STRUCT, 1, LOC_RAD, Mineshaft, 1, BR_CLUST, MC_UNDEF, MC_NEWEST, 0, 0, disp++,
+            CAT_STRUCT, 1, LOC_RAD, Mineshaft, 1, BR_CLUST, MC_UNDEF, MC_NEWEST, 0, 1, disp++,
             "mineshaft",
             QT_TRANSLATE_NOOP("Filter", "Abandoned mineshaft"),
             ""
         };
 
         list[F_RAVINE] = FilterInfo{
-            CAT_OTHER, 1, LOC_RAD, Ravine, 1, BR_CLUST, MC_1_2, MC_NEWEST, 0, 0, disp++,
+            CAT_OTHER, 1, LOC_RAD, Ravine, 1, BR_CLUST, MC_1_2, MC_NEWEST, 0, 1, disp++,
             "ravine",
             QT_TRANSLATE_NOOP("Filter", "Ravine"),
             ""

@@ -124,9 +124,9 @@ QStringList VarPos::detail() const
     }
     else if (type == Ravine)
     {
-        sinfo.append(QString::asprintf("x=%d", p.x+v.x));
+        sinfo.append(QString::asprintf("x=%d", v.x));
         sinfo.append(QString::asprintf("y=%d", v.y));
-        sinfo.append(QString::asprintf("z=%d", p.z+v.z));
+        sinfo.append(QString::asprintf("z=%d", v.z));
         sinfo.append(QString::asprintf("thick=%f", v.thick));
     }
     else if (type == Lava_Lake)
@@ -194,9 +194,15 @@ QStringList VarPos::detail() const
         sinfo.append(QString::asprintf("x=%d", p.x));
         sinfo.append(QString::asprintf("y=%d", v.y));
         sinfo.append(QString::asprintf("z=%d", p.z));
-        static const char *mobnames[] = { "skeleton", "zombie", "spider" };
+        static const char *mobnames[] = { "zombie", "skeleton", "spider" };
         if (v.start < 3)
             sinfo.append(QString("mob=") + mobnames[v.start]);
+    }
+    else if (type == Trial_Chambers)
+    {
+        sinfo.append(QString::asprintf("x=%d", p.x+v.x));
+        sinfo.append(QString::asprintf("y=%d", v.y));
+        sinfo.append(QString::asprintf("z=%d", p.z+v.z));
     }
     else if (type == Abandoned_Camp)
     {
@@ -214,16 +220,14 @@ QStringList VarPos::detail() const
 
 static void populateStrongholdLayout(VarPos *vp, WorldInfo wi)
 {
-    Piece pieces[1024];
-    int n = getStrongholdPieces(pieces, sizeof(pieces)/sizeof(pieces[0]),
-        wi.mc, wi.seed, vp->p.x >> 4, vp->p.z >> 4);
-    if (!n)
+    StrongholdLayout sh;
+    if (!getStrongholdLayout(&sh, wi.mc, wi.seed, vp->p.x >> 4, vp->p.z >> 4))
         return;
 
-    vp->pieces.assign(pieces, pieces+n);
+    vp->pieces.assign(sh.pieces, sh.pieces+sh.count);
 
     StrongholdPortalFrame frames[12];
-    int nf = getStrongholdPortalFrames(frames, pieces, n, wi.seed);
+    int nf = getStrongholdPortalFrames(frames, &sh);
     vp->portalFrames.assign(frames, frames+nf);
 }
 
@@ -370,7 +374,7 @@ void getStructs(std::vector<VarPos> *out, const StructureConfig sconf,
                     int n = getOutpostPieces(pieces, wi.seed, p.x >> 4, p.z >> 4);
                     if (n) {
                         vp.pieces.assign(pieces, pieces+n);
-                        vp.pieces[0].bb0.y = (int)y;
+                        vp.pieces[0].bb.minY = (int)y;
                     }
                 }
                 else if (sconf.structType == End_City)
@@ -382,7 +386,7 @@ void getStructs(std::vector<VarPos> *out, const StructureConfig sconf,
                     if (n)
                     {
                         vp.pieces.assign(pieces, pieces+n);
-                        vp.pieces[0].bb0.y = y; // height of end city pieces are relative to surface
+                        vp.pieces[0].bb.minY = y; // height of end city pieces are relative to surface
                     }
                 }
                 else if (sconf.structType == Mineshaft)
@@ -400,6 +404,12 @@ void getStructs(std::vector<VarPos> *out, const StructureConfig sconf,
                 else if (sconf.structType == Ravine)
                 {
                     id = getBiomeAt(&g, 4, p.x>>2, 0, p.z>>2);
+                    getVariant(&vp.v, Ravine, wi.mc, wi.seed, p.x, p.z, id);
+                    int n = addTunnel(pieces, vp.v.seed, vp.v.x, vp.v.y, vp.v.z,
+                        vp.v.yaw, vp.v.pitch, vp.v.thick, vp.v.giant ? 40.0f : 4.0f);
+                    vp.pieces.assign(pieces, pieces+n);
+                    out->push_back(vp);
+                    continue;
                 }
                 else if (sconf.structType == Lava_Lake)
                 {
@@ -410,16 +420,16 @@ void getStructs(std::vector<VarPos> *out, const StructureConfig sconf,
                     int n = getFortressPieces(pieces, sizeof(pieces)/sizeof(pieces[0]),
                         wi.mc, wi.seed, p.x >> 4, p.z >> 4);
                     vp.pieces.assign(pieces, pieces+n);
+                    vp.pieces[0].bb.minY += 4; // prevent player suffocation on tp
                 }
                 else if (sconf.structType == Stronghold)
                 {
-                    int n = getStrongholdPieces(pieces, sizeof(pieces)/sizeof(pieces[0]),
-                        wi.mc, wi.seed, p.x >> 4, p.z >> 4);
-                    if (n)
+                    StrongholdLayout sh;
+                    if (getStrongholdLayout(&sh, wi.mc, wi.seed, p.x >> 4, p.z >> 4))
                     {
-                        vp.pieces.assign(pieces, pieces+n);
+                        vp.pieces.assign(sh.pieces, sh.pieces+sh.count);
                         StrongholdPortalFrame frames[12];
-                        int nf = getStrongholdPortalFrames(frames, pieces, n, wi.seed);
+                        int nf = getStrongholdPortalFrames(frames, &sh);
                         vp.portalFrames.assign(frames, frames+nf);
                     }
                 }
@@ -1659,10 +1669,10 @@ void QWorld::draw(QPainter& painter, int vw, int vh, qreal focusx, qreal focusz,
                     painter.setPen(QPen(QColor(192, 0, 0, 128), 0));
                     for (Piece& p : vp.pieces)
                     {
-                        qreal px = vw/2.0 + (p.bb0.x - focusx) * blocks2pix;
-                        qreal py = vh/2.0 + (p.bb0.z - focusz) * blocks2pix;
-                        qreal dx = (p.bb1.x - p.bb0.x + 1) * blocks2pix;
-                        qreal dy = (p.bb1.z - p.bb0.z + 1) * blocks2pix;
+                        qreal px = vw/2.0 + (p.bb.minX - focusx) * blocks2pix;
+                        qreal py = vh/2.0 + (p.bb.minZ - focusz) * blocks2pix;
+                        qreal dx = (p.bb.maxX - p.bb.minX + 1) * blocks2pix;
+                        qreal dy = (p.bb.maxZ - p.bb.minZ + 1) * blocks2pix;
                         painter.drawRect(QRect(px, py, dx, dy));
 
                         if (vp.type == Fortress && p.type == BRIDGE_SPAWNER)

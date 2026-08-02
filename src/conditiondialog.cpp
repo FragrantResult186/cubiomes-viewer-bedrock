@@ -295,6 +295,11 @@ ConditionDialog::ConditionDialog(FormConditions *parent, MapView *mapview, Confi
             climaterange[0][i] = lr;
             ui->gridHeightRange->addWidget(lr);
             on_comboHeightRange_currentIndexChanged(0);
+            int rymin, rymax;
+            getFeatureYRange(F_RAVINE, wi.mc, &rymin, &rymax);
+            ravineHeightRange = new LabeledRange(this, rymin, rymax);
+            ravineHeightRange->setHighlight(QColor(Qt::darkCyan), QColor(QColor::Invalid));
+            ui->gridRavineHeightRange->addWidget(ravineHeightRange);
             continue;
         }
         ui->comboClimatePara->addItem(climate[i], QVariant::fromValue(i));
@@ -564,6 +569,15 @@ ConditionDialog::ConditionDialog(FormConditions *parent, MapView *mapview, Confi
         }
         setClimateLimits(climaterange[0], cond.limok, true);
         setClimateLimits(climaterange[1], cond.limex, false);
+        if (cond.type == F_RAVINE && ravineHeightRange)
+        {
+            int rymin, rymax;
+            getFeatureYRange(F_RAVINE, wi.mc, &rymin, &rymax);
+            ravineHeightRange->setRange(rymin, rymax);
+            int lo = cond.limok[NP_DEPTH][0] == INT_MIN ? rymin : cond.limok[NP_DEPTH][0];
+            int hi = cond.limok[NP_DEPTH][1] == INT_MAX ? rymax : cond.limok[NP_DEPTH][1];
+            ravineHeightRange->setValues(lo, hi);
+        }
 
         ui->comboHeightRange->setCurrentIndex(cond.flags & Condition::FLG_IN_RANGE ? 0 : 1);
     }
@@ -617,6 +631,36 @@ void ConditionDialog::initComboY(QComboBox *cb, int y)
     if (i >= n)
         cb->addItem(QString::number(y));
     cb->setCurrentIndex(i);
+}
+
+bool ConditionDialog::getFeatureYRange(int filterindex, int mc, int *ymin, int *ymax)
+{
+    switch (filterindex)
+    {
+    case F_STRONGHOLD:
+        *ymin = mc >= MC_1_18 ? -60 : 4;
+        *ymax = mc >= MC_1_18 ?  42 : 54;
+        return true;
+    case F_MINESHAFT:
+        // union of normal ([-58,47]/[4,44]) and mesa ([50,50]/[60,76]) start-room ranges
+        *ymin = mc >= MC_1_18 ? -58 : 4;
+        *ymax = mc >= MC_1_18 ?  50 : 76;
+        return true;
+    case F_GEODE:
+        *ymin = mc >= MC_1_18 ? -53 : 11;
+        *ymax = mc >= MC_1_18 ?  34 : 51;
+        return true;
+    case F_CHAMBERS:
+        *ymin = -40;
+        *ymax = -20;
+        return true;
+    case F_RAVINE:
+        *ymin = mc >= MC_1_21_60 ? 10 : 20;
+        *ymax = mc >= MC_1_21_60 ? 67 : 66;
+        return true;
+    default:
+        return false;
+    }
 }
 
 void ConditionDialog::updateMode()
@@ -783,6 +827,12 @@ void ConditionDialog::updateMode()
         ui->stackedWidget->setCurrentWidget(ui->pageRavine);
         ui->checkMegaRavine->setEnabled(wi.mc >= MC_1_2);
         setRavineAngleControlsEnabled(ui->checkRavineAngle->isChecked());
+        if (ravineHeightRange)
+        {
+            int ymin, ymax;
+            getFeatureYRange(F_RAVINE, wi.mc, &ymin, &ymax);
+            ravineHeightRange->setRange(ymin, ymax);
+        }
     }
     else if (filterindex == F_RUINS)
     {
@@ -809,10 +859,49 @@ void ConditionDialog::updateMode()
         ui->groupBox_11->setTitle(tr("Start stairs Y level"));
         ui->label_11->setText(tr("Y range"));
         ui->comboHeightRange->setVisible(false);
+        int ymin, ymax;
+        getFeatureYRange(F_STRONGHOLD, wi.mc, &ymin, &ymax);
+        if (climaterange[0][NP_DEPTH])
+            climaterange[0][NP_DEPTH]->setRange(ymin, ymax);
+    }
+    else if (filterindex == F_MINESHAFT)
+    {
+        ui->stackedWidget->setCurrentWidget(ui->pageHeight);
+        ui->groupBox_11->setTitle(tr("Start room Y level"));
+        ui->label_11->setText(tr("Y range"));
+        ui->comboHeightRange->setVisible(false);
+        int ymin, ymax;
+        getFeatureYRange(F_MINESHAFT, wi.mc, &ymin, &ymax);
+        if (climaterange[0][NP_DEPTH])
+            climaterange[0][NP_DEPTH]->setRange(ymin, ymax);
     }
     else if (filterindex == F_HEIGHT)
     {
         ui->stackedWidget->setCurrentWidget(ui->pageHeight);
+        if (climaterange[0][NP_DEPTH])
+            climaterange[0][NP_DEPTH]->setRange(wi.mc < MC_1_18 ? 0 : -64, wi.mc < MC_1_18 ? 256 : 320);
+    }
+    else if (filterindex == F_GEODE)
+    {
+        ui->stackedWidget->setCurrentWidget(ui->pageHeight);
+        ui->groupBox_11->setTitle(tr("Start geode Y level"));
+        ui->label_11->setText(tr("Y range"));
+        ui->comboHeightRange->setVisible(false);
+        int ymin, ymax;
+        getFeatureYRange(F_GEODE, wi.mc, &ymin, &ymax);
+        if (climaterange[0][NP_DEPTH])
+            climaterange[0][NP_DEPTH]->setRange(ymin, ymax);
+    }
+    else if (filterindex == F_CHAMBERS)
+    {
+        ui->stackedWidget->setCurrentWidget(ui->pageHeight);
+        ui->groupBox_11->setTitle(tr("Start chamber Y level"));
+        ui->label_11->setText(tr("Y range"));
+        ui->comboHeightRange->setVisible(false);
+        int ymin, ymax;
+        getFeatureYRange(F_CHAMBERS, wi.mc, &ymin, &ymax);
+        if (climaterange[0][NP_DEPTH])
+            climaterange[0][NP_DEPTH]->setRange(ymin, ymax);
     }
     else if (filterindex == F_LUA)
     {
@@ -1411,6 +1500,13 @@ void ConditionDialog::onAccept()
     c.varflags |= tristateFlags(ui->checkBlacksmith, Condition::VAR_BLACKSMITH);
 
     getClimateLimits(c.limok, c.limex);
+    if (ui->stackedWidget->currentWidget() == ui->pageRavine && ravineHeightRange)
+    {
+        int lo = ravineHeightRange->slider->pos0;
+        int hi = ravineHeightRange->slider->pos1;
+        c.limok[NP_DEPTH][0] = (lo == ravineHeightRange->slider->vmin) ? INT_MIN : lo;
+        c.limok[NP_DEPTH][1] = (hi == ravineHeightRange->slider->vmax) ? INT_MAX : hi;
+    }
 
     if (!warnIfBad(c))
         return;

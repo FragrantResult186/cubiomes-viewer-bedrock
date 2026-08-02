@@ -68,6 +68,7 @@ public:
     virtual ~LabeledRange();
 
     void setValues(int p0, int p1);
+    void setRange(int vmin, int vmax);
     void setLimitText(QString min, QString max);
     void setHighlight(QColor inner, QColor outer);
 
