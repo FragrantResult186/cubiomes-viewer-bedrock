@@ -24,7 +24,7 @@ struct VarPos
     std::vector<Piece> pieces;
     std::vector<StrongholdPortalFrame> portalFrames;
 
-    QStringList detail() const;
+    QStringList detail(int mc) const;
 };
 
 const QPixmap& getMapIcon(int opt, VarPos *variation = 0);

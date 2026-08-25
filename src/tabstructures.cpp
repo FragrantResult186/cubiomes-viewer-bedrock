@@ -91,7 +91,7 @@ void AnalysisStructures::runStructs(Generator *g)
             item->setData(0, Qt::UserRole+0, QVariant::fromValue(wi.seed));
             item->setData(0, Qt::UserRole+1, QVariant::fromValue(sconf.dim));
             item->setData(0, Qt::UserRole+2, QVariant::fromValue(vp.p));
-            QStringList sinfo = vp.detail();
+            QStringList sinfo = vp.detail(wi.mc);
             if (!sinfo.empty())
                 item->setText(C_DETAIL, sinfo.join(":"));
         }

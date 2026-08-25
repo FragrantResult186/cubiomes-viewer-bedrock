@@ -84,7 +84,7 @@ const QPixmap& getMapIcon(int opt, VarPos *vp)
     return icons[opt];
 }
 
-QStringList VarPos::detail() const
+QStringList VarPos::detail(int mc) const
 {
     QStringList sinfo;
     QString s;
@@ -207,7 +207,7 @@ QStringList VarPos::detail() const
     else if (type == Abandoned_Camp)
     {
         QString tent = getCampTentName(v.biome, v.start);
-        QString camp = getCampsiteName(v.biome, v.size);        
+        QString camp = mc >= MC_26_50 ? getCampsiteName(v.biome, v.size) : getCampsiteNameOld(v.biome, v.size);
         if (!tent.isEmpty())
             sinfo.append("tent=" + tent);
         if (!camp.isEmpty())
@@ -1886,7 +1886,7 @@ void QWorld::draw(QPainter& painter, int vw, int vh, qreal focusx, qreal focusz,
         iconrec = iconrec.translated(pad,pad);
         painter.drawPixmap(iconrec, icon);
 
-        QStringList sinfo = selvp.detail();
+        QStringList sinfo = selvp.detail(wi.mc);
         if (!sinfo.empty())
         {
             f = QFont();
@@ -1922,5 +1922,3 @@ void QWorld::draw(QPainter& painter, int vw, int vh, qreal focusx, qreal focusz,
         painter.drawRect(QRect(rx0, rz0, rx1-rx0, rz1-rz0));
     }
 }
-
-

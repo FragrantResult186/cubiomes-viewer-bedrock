@@ -81,7 +81,7 @@ QString getCampTentName(int biomeID, int idx)
     return QString();
 }
 
-QString getCampsiteName(int biomeID, int idx)
+QString getCampsiteNameOld(int biomeID, int idx)
 {
     if (idx < 0 || idx >= 48)
         return NULL;
@@ -103,6 +103,34 @@ QString getCampsiteName(int biomeID, int idx)
 
     int cat = (idx - 3) / 15;
     int pos = (idx - 3) % 15;
+    int num = g_pool_order[pos];
+
+    static char buf[128];
+    snprintf(buf, sizeof(buf), "%s_%d", prefixes[cat], num);
+    return buf;
+}
+QString getCampsiteName(int biomeID, int idx)
+{
+    if (idx < 0 || idx >= 49)
+        return NULL;
+    if (idx < 4)
+    {
+        for (int i = 0; g_camp_tent_biome_ids[i] != -1; i++) {
+            if (g_camp_tent_biome_ids[i] == biomeID) {
+                const char* key = biome2str(MC_NEWEST, biomeID);
+                if (key == NULL) {
+                    key = "unknown"; // fallback
+                }
+                static char buf[128];
+                snprintf(buf, sizeof(buf), "campsite_%s_%d", key, idx + 1);
+                return buf;
+            }
+        }
+        return NULL;
+    }
+
+    int cat = (idx - 4) / 15;
+    int pos = (idx - 4) % 15;
     int num = g_pool_order[pos];
 
     static char buf[128];

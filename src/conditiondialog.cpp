@@ -207,9 +207,11 @@ ConditionDialog::ConditionDialog(FormConditions *parent, MapView *mapview, Confi
 
         QGroupBox *grpSite = new QGroupBox(tr("Campsite"), pageCamp);
         QGridLayout *gridSite = new QGridLayout(grpSite);
-        for (int i = 0; i < 48; i++)
+        int campSiteCount = wi.mc >= MC_26_50 ? 49 : 48;
+        for (int i = 0; i < campSiteCount; i++)
         {
-            QCheckBox *cb = new QCheckBox(getCampsiteName(forest, i), grpSite);
+            QString name = wi.mc >= MC_26_50 ? getCampsiteName(forest, i) : getCampsiteNameOld(forest, i);
+            QCheckBox *cb = new QCheckBox(name, grpSite);
             gridSite->addWidget(cb, i / 3, i % 3);
             campSiteBoxes.push_back(cb);
         }

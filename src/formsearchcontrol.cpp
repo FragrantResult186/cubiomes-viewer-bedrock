@@ -512,13 +512,13 @@ void FormSearchControl::on_buttonSearchHelp_clicked()
         "</p><p>"
         "When using <b>32-bit only</b>, the search checks partial seeds and "
         "will not test the full conditions. Instead it yields seed bases "
-        "that may satify the conditions without knowing the upper 16-bit of "
+        "that may satify the conditions without knowing the upper 32-bit of "
         "the seed. A session file saved from this search is suitable to be used "
-        "later with the 48-bit generator to look for matching seeds."
+        "later with the Seed generator to look for matching seeds."
         "</p><p>"
         "With <b>32-bit family blocks</b> the search looks for suitable "
-        "48-bit seeds first and parallelizes the search through the upper "
-        "16-bits. This search type can be a better match for exhaustive searches "
+        "32-bit seeds first and parallelizes the search through the upper "
+        "32-bits. This search type can be a better match for exhaustive searches "
         "and those with very restrictive structure requirements."
         "</p><p>"
         "Load a <b>seed list from a file</b> to search through an "
@@ -723,7 +723,7 @@ void FormSearchControl::searchProgressReset()
     if (cnt > MASK32)
         cnt = ~(uint64_t)0;
     else
-        cnt <<= 16;
+        cnt <<= 32;
 
     QString fmt;
     int searchtype = ui->comboSearchType->currentData().toInt();
