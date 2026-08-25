@@ -987,7 +987,8 @@ static bool isVariantOk(const Condition *c, SearchThreadEnv *e, int stype, int v
         if (c->varflags & Condition::VAR_WITH_START)
         {
             uint64_t tentMask = c->varstart & 0x3FFULL;
-            uint64_t campMask = (c->varstart >> 10) & ((1ULL << 48) - 1);
+            int campSiteCount = e->mc >= MC_26_50 ? 49 : 48;
+            uint64_t campMask = (c->varstart >> 10) & ((1ULL << campSiteCount) - 1);
             if (tentMask && !(tentMask & (1ULL << sv.start))) return false;
             if (campMask && !(campMask & (1ULL << sv.size))) return false;
         }
@@ -2693,7 +2694,6 @@ void findQuadStructs(int styp, Generator *g, QVector<QuadInfo> *out)
 
     delete[] qlist;
 }
-
 
 
 

@@ -238,8 +238,8 @@ void FormGen48::updateCount()
     }
     else
     {
-        uint64_t total = cnt << 16;
-        ui->labelCount->setText(tr("%1 %2 65536 = %3").arg(cnt).arg(QChar(0xD7)).arg(total));
+        uint64_t total = cnt << 32;
+        ui->labelCount->setText(tr("%1 %2 4294967296 = %3").arg(cnt).arg(QChar(0xD7)).arg(total));
     }
 }
 

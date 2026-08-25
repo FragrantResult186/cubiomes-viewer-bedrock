@@ -138,7 +138,7 @@ private:
     QCheckBox *checkStartCamp;
     QCheckBox *checkSecretChest;
     QVector<QCheckBox*> campTentBoxes;  // bit index 0-9  (tent shape)
-    QVector<QCheckBox*> campSiteBoxes;  // bit index 0-47 (campsite decor)
+    QVector<QCheckBox*> campSiteBoxes;  // bit index 0-48 (campsite decor)
 
     LabeledRange *ravineHeightRange = nullptr;
 

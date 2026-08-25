@@ -4,9 +4,11 @@
 #include <QWidget>
 #include <QSlider>
 #include <QComboBox>
+#include <QAbstractItemView>
 #include <QStyledItemDelegate>
 #include <QSpinBox>
 #include <QLineEdit>
+#include <QFontMetrics>
 
 class QParallelAnimationGroup;
 class QToolButton;
@@ -138,6 +140,20 @@ public:
     StyledComboBox(QWidget *parent) : QComboBox(parent)
     {
         setItemDelegate(new ComboBoxDelegate(parent, this));
+    }
+
+protected:
+    // with an app stylesheet set, Qt clamps the popup width to the
+    // combobox's own width, so widen it to fit the longest item
+    virtual void showPopup() override
+    {
+        QFontMetrics fm = fontMetrics();
+        int w = 0;
+        for (int i = 0, n = count(); i < n; i++)
+            w = std::max(w, fm.horizontalAdvance(itemText(i)));
+        if (w > 0)
+            view()->setMinimumWidth(w + 40);
+        QComboBox::showPopup();
     }
 };
 
