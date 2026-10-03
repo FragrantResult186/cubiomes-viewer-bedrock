@@ -64,9 +64,8 @@ static const StartPiece g_start_pieces[] =
 
 QString getStartPieceName(int stype, const StructureVariant *sv);
 
-QString getCampTentName(int biomeID, int idx);
-QString getCampsiteNameOld(int biomeID, int idx);
-QString getCampsiteName(int biomeID, int idx);
+QString getCampTentNameQ(int biomeID, int idx);
+QString getCampsiteNameQ(int biomeID, int idx, int biomeCampCount);
 
 QString getBiomeDisplay(int mc, int id);
 

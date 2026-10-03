@@ -392,6 +392,8 @@ void MapView::showContextMenu(const QPoint &pos)
             midx = (pc.bb.minX + pc.bb.maxX) >> 1;
             midy = (pc.bb.minY) + 1;
             midz = (pc.bb.minZ + pc.bb.maxZ) >> 1;
+            if (vp.type == Ravine)
+                midy = vp.v.y;
         }
         else
         {
