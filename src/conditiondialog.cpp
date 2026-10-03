@@ -195,7 +195,7 @@ ConditionDialog::ConditionDialog(FormConditions *parent, MapView *mapview, Confi
         QGridLayout *gridTent = new QGridLayout(grpTent);
         for (int i = 0; i < 10; i++)
         {
-            QCheckBox *cb = new QCheckBox(getCampTentName(forest, i), grpTent);
+            QCheckBox *cb = new QCheckBox(getCampTentNameQ(forest, i), grpTent);
             gridTent->addWidget(cb, i / 2, i % 2);
             campTentBoxes.push_back(cb);
         }
@@ -208,9 +208,10 @@ ConditionDialog::ConditionDialog(FormConditions *parent, MapView *mapview, Confi
         QGroupBox *grpSite = new QGroupBox(tr("Campsite"), pageCamp);
         QGridLayout *gridSite = new QGridLayout(grpSite);
         int campSiteCount = wi.mc >= MC_26_50 ? 49 : 48;
+        int biomeCampCount = wi.mc >= MC_26_50 ? 4 : 3;
         for (int i = 0; i < campSiteCount; i++)
         {
-            QString name = wi.mc >= MC_26_50 ? getCampsiteName(forest, i) : getCampsiteNameOld(forest, i);
+            QString name = getCampsiteName(forest, i, biomeCampCount);
             QCheckBox *cb = new QCheckBox(name, grpSite);
             gridSite->addWidget(cb, i / 3, i % 3);
             campSiteBoxes.push_back(cb);
@@ -1219,7 +1220,8 @@ bool ConditionDialog::warnIfBad(Condition cond)
             uint64_t underground =
                     (1ULL << (dripstone_caves-128)) |
                     (1ULL << (lush_caves-128)) |
-                    (1ULL << (deep_dark-128));
+                    (1ULL << (deep_dark-128)) |
+                    (1ULL << (ice_caves-128));
             if ((m & underground) && cond.y > 246)
             {
                 int button = warn(this, tr("Bad Surface Height"),

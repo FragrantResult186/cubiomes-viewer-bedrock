@@ -884,7 +884,7 @@ static bool isVariantOk(const Condition *c, SearchThreadEnv *e, int stype, int v
             if (!(c->varflags & Condition::VAR_NOT) && !sv.abandoned)
                 return false;
         }
-        if (!(c->varflags & Condition::VAR_WITH_START) || e->mc < MC_1_14) return true;
+        if (!(c->varflags & Condition::VAR_WITH_START) || e->mc < MC_1_11) return true;
     }
     else if (stype == Bastion)
     {
@@ -1600,7 +1600,7 @@ L_qm_any:
                             int vv[] = {
                                 plains, desert, savanna, taiga, snowy_taiga, snowy_plains,
                             };
-                            int vn = env->mc <= MC_1_13 ? 1 : sizeof(vv) / sizeof(int);
+                            int vn = env->mc < MC_1_11 ? 1 : sizeof(vv) / sizeof(int);
                             int i;
                             for (i = 0; i < vn; i++)
                                 if (isVariantOk(cond, env, st, vv[i], &pc))
@@ -1626,7 +1626,7 @@ L_qm_any:
                             plains, desert, savanna, taiga, snowy_taiga, snowy_plains,
                             // plains village variant covers meadows
                         };
-                        int vn = env->mc <= MC_1_10 ? 1 : sizeof(vv) / sizeof(int);
+                        int vn = env->mc < MC_1_11 ? 1 : sizeof(vv) / sizeof(int);
                         int i;
                         for (i = 0; i < vn; i++)
                             if (isVariantOk(cond, env, st, vv[i], &pc))

@@ -206,8 +206,9 @@ QStringList VarPos::detail(int mc) const
     }
     else if (type == Abandoned_Camp)
     {
-        QString tent = getCampTentName(v.biome, v.start);
-        QString camp = mc >= MC_26_50 ? getCampsiteName(v.biome, v.size) : getCampsiteNameOld(v.biome, v.size);
+        int biomeCampCount = mc >= MC_26_50 ? 4 : 3;
+        QString tent = getCampTentNameQ(v.biome, v.start);
+        QString camp = getCampsiteNameQ(v.biome, v.size, biomeCampCount) ;
         if (!tent.isEmpty())
             sinfo.append("tent=" + tent);
         if (!camp.isEmpty())
@@ -320,8 +321,6 @@ void getStructs(std::vector<VarPos> *out, const StructureConfig sconf,
                 for (int k = 0; k < cnt; k++)
                 {
                     Pos dpos = Pos{dps[k].pos.x, dps[k].pos.z};
-                    if (dpos.x < x0 || dpos.x >= x1 || dpos.z < z0 || dpos.z >= z1)
-                        continue;
                     VarPos vp = VarPos(dpos, sconf.structType);
                     vp.v.y = (int16_t) dps[k].pos.y;
                     vp.v.start = (uint8_t) dps[k].mobType;
