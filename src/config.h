@@ -120,6 +120,7 @@ enum {
     D_WELL,
     D_GEODE,
     D_DUNGEON,
+    D_FOSSIL,
     D_OUTPOST,
     D_ANCIENTCITY,
     D_TRAILRUINS,

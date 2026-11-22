@@ -87,6 +87,11 @@
         <file>icons/well_d.png</file>
         <file>icons/geode_d.png</file>
         <file>icons/geode.png</file>
+        <file>icons/fossil.png</file>
+        <file>icons/fossil_d.png</file>
+        <file>icons/fossil_coal.png</file>
+        <file>icons/fossil_diamond.png</file>
+        <file>icons/fossil_ghast.png</file>
         <file>icons/zoom_in.png</file>
         <file>icons/zoom_out.png</file>
         <file>icons/zoom.png</file>

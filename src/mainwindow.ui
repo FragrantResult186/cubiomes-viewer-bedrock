@@ -592,7 +592,7 @@ QToolButton:checked {
     <bool>true</bool>
    </property>
    <property name="text">
-    <string>(1.13 - 1.17) O. Temp. 1:256</string>
+    <string>(1.4 - 1.17) O. Temp. 1:256</string>
    </property>
    <property name="shortcut">
     <string>Alt+O</string>
@@ -603,7 +603,7 @@ QToolButton:checked {
     <bool>true</bool>
    </property>
    <property name="text">
-    <string>(1.13 - 1.17) River Mix 1:4</string>
+    <string>(1.4 - 1.17) River Mix 1:4</string>
    </property>
    <property name="shortcut">
     <string>Alt+R</string>
@@ -690,7 +690,7 @@ QToolButton:checked {
     <bool>true</bool>
    </property>
    <property name="text">
-    <string>Structure potential (48-bit)</string>
+    <string>Structure potential (32-bit)</string>
    </property>
    <property name="shortcut">
     <string>Alt+S</string>

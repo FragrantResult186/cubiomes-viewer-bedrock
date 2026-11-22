@@ -3655,8 +3655,8 @@ Applies only to feature-structures of region-size = 32 and chunk-gap = 8, in par
     </message>
     <message>
         <location filename="../../src/mainwindow.ui" line="602" />
-        <source>(1.13 - 1.17) O. Temp. 1:256</source>
-        <translation>(1.13 - 1.17) 海洋気温 1:256</translation>
+        <source>(1.4 - 1.17) O. Temp. 1:256</source>
+        <translation>(1.4 - 1.17) 海洋気温 1:256</translation>
     </message>
     <message>
         <location filename="../../src/mainwindow.ui" line="605" />
@@ -3665,8 +3665,8 @@ Applies only to feature-structures of region-size = 32 and chunk-gap = 8, in par
     </message>
     <message>
         <location filename="../../src/mainwindow.ui" line="613" />
-        <source>(1.13 - 1.17) River Mix 1:4</source>
-        <translation>(1.13 - 1.17) 川ミックス 1:4</translation>
+        <source>(1.4 - 1.17) River Mix 1:4</source>
+        <translation>(1.4 - 1.17) 川ミックス 1:4</translation>
     </message>
     <message>
         <location filename="../../src/mainwindow.ui" line="616" />
@@ -3740,7 +3740,7 @@ Applies only to feature-structures of region-size = 32 and chunk-gap = 8, in par
     </message>
     <message>
         <location filename="../../src/mainwindow.ui" line="700" />
-        <source>Structure potential (48-bit)</source>
+        <source>Structure potential (32-bit)</source>
         <translation>構造物の可能性（32ビット）</translation>
     </message>
     <message>

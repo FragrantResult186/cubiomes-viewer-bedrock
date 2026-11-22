@@ -386,12 +386,18 @@ void MapView::showContextMenu(const QPoint &pos)
     if (vp.type != -1)
     {   // structure has a known size / location
         int midx, midy, midz;
-        if (vp.pieces.size() > 0)
+        // outpost pieces are only the feature pieces around the tower
+        if (vp.pieces.size() > 0 && vp.type != Outpost)
         {
             const Piece& pc = vp.pieces[0];
             midx = (pc.bb.minX + pc.bb.maxX) >> 1;
             midy = (pc.bb.minY) + 1;
             midz = (pc.bb.minZ + pc.bb.maxZ) >> 1;
+            if (vp.type == Village || vp.type == Ancient_City)
+            {   // the center of the blocks of the start piece (see world.cpp)
+                midx = vp.p.x;
+                midz = vp.p.z;
+            }
             if (vp.type == Ravine)
                 midy = vp.v.y;
         }
@@ -400,6 +406,8 @@ void MapView::showContextMenu(const QPoint &pos)
             midx = vp.p.x + vp.v.x + vp.v.sx / 2;
             midy = vp.v.y;
             midz = vp.p.z + vp.v.z + vp.v.sz / 2;
+            if (vp.type == End_Gateway)
+                midy += 5; // above the gateway, not into it
             if (midy >= 320 && world)
             {
                 midy = world->estimateSurface(Pos{midx, midz}) + 8;
@@ -412,8 +420,11 @@ void MapView::showContextMenu(const QPoint &pos)
     }
     cpy_dat.push_back({ tr("Copy tp:"),     QString::asprintf("/tp @p %d ~ %d", vp.p.x, vp.p.z) });
     cpy_dat.push_back({ tr("Copy coords:"), QString::asprintf("%d %d", vp.p.x, vp.p.z) });
-    cpy_dat.push_back({ tr("Copy chunk:"),  QString::asprintf("%d %d", vp.p.x >> 4, vp.p.z >> 4) });
-    cpy_dat.push_back({ tr("Copy region:"), QString::asprintf("%d %d", vp.p.x >> 9, vp.p.z >> 9) });
+    Pos cp = vp.p; // the chunk of a village is where its start piece begins
+    if (vp.type == Village && !vp.pieces.empty())
+        cp = Pos{ vp.pieces[0].pos.x, vp.pieces[0].pos.z };
+    cpy_dat.push_back({ tr("Copy chunk:"),  QString::asprintf("%d %d", cp.x >> 4, cp.z >> 4) });
+    cpy_dat.push_back({ tr("Copy region:"), QString::asprintf("%d %d", cp.x >> 9, cp.z >> 9) });
 
     int wmax = 0;
     for (auto& it : cpy_dat)

@@ -293,7 +293,7 @@ static const struct FilterList : private FilterInfo
         };
 
         list[F_BIOME_4_RIVER] = FilterInfo{
-            CAT_BIOMES, 1, LOC_REC, 0, 4, BR_NONE, MC_1_13, MC_1_17, 0, 0, disp++,
+            CAT_BIOMES, 1, LOC_REC, 0, 4, BR_NONE, MC_1_4, MC_1_17, 0, 0, disp++,
             "map",
             QT_TRANSLATE_NOOP("Filter", "Biome layer 1:4 RIVER"),
             QT_TRANSLATE_NOOP("Filter",
@@ -303,7 +303,7 @@ static const struct FilterList : private FilterInfo
             "This layer does not generate ocean variants.")
         };
         list[F_BIOME_256_OTEMP] = FilterInfo{
-            CAT_BIOMES, 0, LOC_REC, 0, 256, BR_NONE, MC_1_13, MC_1_17, 0, 0, disp++,
+            CAT_BIOMES, 0, LOC_REC, 0, 256, BR_NONE, MC_1_4, MC_1_17, 0, 0, disp++,
             "map",
             QT_TRANSLATE_NOOP("Filter", "Biome layer 1:256 O.TEMP"),
             QT_TRANSLATE_NOOP("Filter",

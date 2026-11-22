@@ -3707,8 +3707,8 @@ Trozdem fortfahren?</translation>
     </message>
     <message>
         <location filename="../../src/mainwindow.ui" line="602"/>
-        <source>(1.13 - 1.17) O. Temp. 1:256</source>
-        <translation>(1.13 - 1.17) O. Temp. 1:256</translation>
+        <source>(1.4 - 1.17) O. Temp. 1:256</source>
+        <translation>(1.4 - 1.17) O. Temp. 1:256</translation>
     </message>
     <message>
         <location filename="../../src/mainwindow.ui" line="605"/>
@@ -3717,8 +3717,8 @@ Trozdem fortfahren?</translation>
     </message>
     <message>
         <location filename="../../src/mainwindow.ui" line="613"/>
-        <source>(1.13 - 1.17) River Mix 1:4</source>
-        <translation>(1.13 - 1.17) Fluss Mix 1:4</translation>
+        <source>(1.4 - 1.17) River Mix 1:4</source>
+        <translation>(1.4 - 1.17) Fluss Mix 1:4</translation>
     </message>
     <message>
         <location filename="../../src/mainwindow.ui" line="616"/>
@@ -3792,8 +3792,8 @@ Trozdem fortfahren?</translation>
     </message>
     <message>
         <location filename="../../src/mainwindow.ui" line="700"/>
-        <source>Structure potential (48-bit)</source>
-        <translation>Strukturpotenzial (48-bit)</translation>
+        <source>Structure potential (32-bit)</source>
+        <translation>Strukturpotenzial (32-bit)</translation>
     </message>
     <message>
         <location filename="../../src/mainwindow.ui" line="703"/>

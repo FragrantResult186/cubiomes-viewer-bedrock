@@ -157,6 +157,7 @@ QString mapopt2display(int opt)
     case D_WELL:        return QApplication::translate("Map", "Desert Well");
     case D_GEODE:       return QApplication::translate("Map", "Geode");
     case D_DUNGEON:     return QApplication::translate("Map", "Dungeon");
+    case D_FOSSIL:      return QApplication::translate("Map", "Fossil");
     case D_OUTPOST:     return QApplication::translate("Map", "Pillager Outpost");
     case D_ANCIENTCITY: return QApplication::translate("Map", "Ancient City");
     case D_TRAILRUINS:  return QApplication::translate("Map", "Trail Ruins");
@@ -196,6 +197,7 @@ const char *mapopt2str(int opt) // to resource string
     case D_WELL:        return "well";
     case D_GEODE:       return "geode";
     case D_DUNGEON:     return "dungeon";
+    case D_FOSSIL:      return "fossil";
     case D_OUTPOST:     return "outpost";
     case D_ANCIENTCITY: return "ancient_city";
     case D_TRAILRUINS:  return "trails";
@@ -233,6 +235,7 @@ int str2mapopt(const char *s) // from resource string
     if (!strcmp(s, "well"))         return D_WELL;
     if (!strcmp(s, "geode"))        return D_GEODE;
     if (!strcmp(s, "dungeon"))      return D_DUNGEON;
+    if (!strcmp(s, "fossil"))       return D_FOSSIL;
     if (!strcmp(s, "outpost"))      return D_OUTPOST;
     if (!strcmp(s, "ancient_city")) return D_ANCIENTCITY;
     if (!strcmp(s, "trails"))       return D_TRAILRUINS;
@@ -270,6 +273,7 @@ int mapopt2stype(int opt)
     case D_WELL:        return Desert_Well;
     case D_GEODE:       return Geode;
     case D_DUNGEON:     return Dungeon;
+    case D_FOSSIL:      return Fossil_Coal;
     case D_OUTPOST:     return Outpost;
     case D_ANCIENTCITY: return Ancient_City;
     case D_TRAILRUINS:  return Trail_Ruins;
@@ -310,7 +314,7 @@ int MapConfig::getTileSize(int opt) const
 {
     if (opt == D_MANSION)
         return 1280 * 16;
-    if (opt == D_GEODE || opt == D_LAVALAKE)
+    if (opt == D_GEODE || opt == D_LAVALAKE || opt == D_FOSSIL)
         return 128 * 16;
     if (opt == D_GATEWAY)
         return 64 * 16;
@@ -332,6 +336,7 @@ void MapConfig::reset()
         opts[i].enabled = true;
     }
     opts[D_GEODE].scale = 16;
+    opts[D_FOSSIL].scale = 16;
     opts[D_RAVINE].scale = 16;
     opts[D_LAVALAKE].scale = 16;
     opts[D_STRONGHOLD].scale = 320;

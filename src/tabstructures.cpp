@@ -64,13 +64,19 @@ void AnalysisStructures::runStructs(Generator *g)
         int stype = mapopt2stype(sopt);
         st.clear();
         StructureConfig sconf;
-        if (!getStructureConfig_override(stype, wi.mc, &sconf))
-            continue;
+        // the fossil option lists the coal, deepslate (diamond) and nether fossils
+        int types[3] = { stype };
+        int ntypes = sopt == D_FOSSIL ? getFossilTypes(dim, types) : 1;
+        for (int i = 0; i < ntypes; i++)
+        {
+            if (!getStructureConfig_override(types[i], wi.mc, &sconf))
+                continue;
 
-        if (dim != DIM_UNDEF && dim != sconf.dim)
-            continue;
+            if (dim != DIM_UNDEF && dim != sconf.dim)
+                continue;
 
-        getStructs(&st, sconf, wi, sconf.dim, area.x1, area.z1, area.x2, area.z2);
+            getStructs(&st, sconf, wi, sconf.dim, area.x1, area.z1, area.x2, area.z2);
+        }
         if (st.empty())
             continue;
 

@@ -32,6 +32,10 @@ const QPixmap& getMapIcon(int opt, VarPos *variation = 0);
 void getStructs(std::vector<VarPos> *out, const StructureConfig sconf,
         WorldInfo wi, int dim, int x0, int z0, int x1, int z1, bool nogen = false);
 
+// the structure types shown by the fossil map option in a dimension
+// (DIM_UNDEF: all of them), returns how many were written to out
+int getFossilTypes(int dim, int out[3]);
+
 enum {
     HV_GRAYSCALE        = 0,
     HV_SHADING          = 1,

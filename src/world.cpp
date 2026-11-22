@@ -2,6 +2,7 @@
 
 #include "util.h"
 
+#include <QHash>
 #include <QPainterPath>
 #include <QSettings>
 #include <QThreadPool>
@@ -24,6 +25,9 @@ const QPixmap& getMapIcon(int opt, VarPos *vp)
     static QPixmap icondzombie;
     static QPixmap icondskeleton;
     static QPixmap icondspider;
+    static QPixmap iconfossilcoal;
+    static QPixmap iconfossildiamond;
+    static QPixmap iconfossilghast;
     static QMutex mutex;
 
     mutex.lock();
@@ -44,6 +48,9 @@ const QPixmap& getMapIcon(int opt, VarPos *vp)
         icondzombie               = getPix("dungeon_zombie", w);
         icondskeleton             = getPix("dungeon_skeleton", w);
         icondspider               = getPix("dungeon_spider", w);
+        iconfossilcoal            = getPix("fossil_coal", w);
+        iconfossildiamond         = getPix("fossil_diamond", w);
+        iconfossilghast           = getPix("fossil_ghast", w);
     }
     mutex.unlock();
 
@@ -71,6 +78,15 @@ const QPixmap& getMapIcon(int opt, VarPos *vp)
         for (Piece& p : vp->pieces)
             if (p.type == END_SHIP)
                 return iconship;
+    }
+    if (opt == D_FOSSIL)
+    {
+        if (vp->type == Fossil_Diamond)
+            return iconfossildiamond;
+        if (vp->type == Fossil_Coal)
+            return iconfossilcoal;
+        if (vp->v.ghast)
+            return iconfossilghast;
     }
     if (opt == D_DUNGEON)
     {
@@ -164,12 +180,18 @@ QStringList VarPos::detail(int mc) const
     else if (type == Stronghold)
     {
         sinfo.append(QString::asprintf("size=%zu", pieces.size()));
-        int eyecnt = 0;
+        int eyecnt = 0, unknown = 0;
         for (const StrongholdPortalFrame& frame : portalFrames)
-            eyecnt += frame.hasEye != 0;
+        {
+            eyecnt  += frame.hasEye ==  1;
+            unknown += frame.hasEye == -1;
+        }
         if (!portalFrames.empty())
         {
-            sinfo.append(QString::asprintf("eyes=%d", eyecnt));
+            if (unknown)
+                sinfo.append(QString::asprintf("eyes=%d+?%d", eyecnt, unknown));
+            else
+                sinfo.append(QString::asprintf("eyes=%d", eyecnt));
         }
     }
     else if (type == Igloo)
@@ -188,6 +210,30 @@ QStringList VarPos::detail(int mc) const
         sinfo.append(QString::asprintf("radius=%d", v.size));
         if (v.cracked)
             sinfo.append("cracked");
+    }
+    else if (type == Fossil_Coal || type == Fossil_Diamond || type == Fossil_N)
+    {
+        static const char *names[8] = {
+            "spine_01", "spine_02", "spine_03", "spine_04",
+            "skull_01", "skull_02", "skull_03", "skull_04",
+        };
+        if (type != Fossil_N)
+            sinfo.append(QString("fossil_") + names[v.start % 8]);
+        else
+            sinfo.append(QString::asprintf("nether_fossil_%d", v.start + 1));
+        if (v.y < 320)
+            sinfo.append(QString::asprintf("y=%d", v.y));
+        if (v.ghast)
+            sinfo.append("dried_ghast");
+        sinfo.append(QString::asprintf("rotation=%d", v.rotation));
+        if (type == Fossil_Diamond)
+            sinfo.append("diamond");
+        else if (type == Fossil_Coal)
+            sinfo.append("coal");
+    }
+    else if (type == End_Gateway)
+    {
+        sinfo.append(QString::asprintf("y=%d", v.y));
     }
     else if (type == Dungeon)
     {
@@ -219,7 +265,20 @@ QStringList VarPos::detail(int mc) const
     return sinfo;
 }
 
-static void populateStrongholdLayout(VarPos *vp, WorldInfo wi)
+int getFossilTypes(int dim, int out[3])
+{
+    int n = 0;
+    if (dim == DIM_UNDEF || dim == DIM_OVERWORLD)
+    {
+        out[n++] = Fossil_Coal;
+        out[n++] = Fossil_Diamond;
+    }
+    if (dim == DIM_UNDEF || dim == DIM_NETHER)
+        out[n++] = Fossil_N;
+    return n;
+}
+
+static void populateStrongholdLayout(VarPos *vp, WorldInfo wi, Generator *g)
 {
     StrongholdLayout sh;
     if (!getStrongholdLayout(&sh, wi.mc, wi.seed, vp->p.x >> 4, vp->p.z >> 4))
@@ -228,7 +287,7 @@ static void populateStrongholdLayout(VarPos *vp, WorldInfo wi)
     vp->pieces.assign(sh.pieces, sh.pieces+sh.count);
 
     StrongholdPortalFrame frames[12];
-    int nf = getStrongholdPortalFrames(frames, &sh);
+    int nf = getStrongholdPortalFramesG(frames, &sh, g);
     vp->portalFrames.assign(frames, frames+nf);
 }
 
@@ -298,7 +357,7 @@ void getStructs(std::vector<VarPos> *out, const StructureConfig sconf,
             if (p.x < x0 || p.x >= x1 || p.z < z0 || p.z >= z1)
                 continue;
             VarPos vp = VarPos(p, sconf.structType);
-            populateStrongholdLayout(&vp, wi);
+            populateStrongholdLayout(&vp, wi, &g);
             out->push_back(vp);
         }
         //return;
@@ -330,9 +389,14 @@ void getStructs(std::vector<VarPos> *out, const StructureConfig sconf,
             }
 
             Pos p;
+            Pos3 gw = {0, 0, 0};
             int ok = getStructurePos(sconf.structType, wi.mc, wi.seed, i, j, &p);
             if (sconf.structType == End_Gateway)
-                ok = getEndGatewayPos(wi.seed, g.en, sn, i, j, &p);
+            {
+                ok = getEndGatewayPos3(wi.seed, &g.en, &sn, i, j, &gw);
+                p.x = gw.x;
+                p.z = gw.z;
+            }
             if (sconf.structType == Lava_Lake) 
             {
                 int isDesert = 0;
@@ -349,6 +413,8 @@ void getStructs(std::vector<VarPos> *out, const StructureConfig sconf,
             if (p.x >= x0 && p.x < x1 && p.z >= z0 && p.z < z1)
             {
                 VarPos vp = VarPos(p, sconf.structType);
+                if (sconf.structType == End_Gateway)
+                    vp.v.y = gw.y;
                 if (nogen)
                 {
                     out->push_back(vp);
@@ -366,6 +432,30 @@ void getStructs(std::vector<VarPos> *out, const StructureConfig sconf,
                     if (n)
                         vp.pieces.assign(pieces, pieces+n);
                 }
+                else if (sconf.structType == Village)
+                {
+                    if (g.mc >= MC_1_18 && g_extgen.estimateTerrain &&
+                        !isViableStructureTerrain(Village, &g, p.x, p.z))
+                    {
+                        continue;
+                    }
+                    int n = getVillagePieces(pieces, sizeof(pieces)/sizeof(pieces[0]),
+                        wi.mc, wi.seed, p.x >> 4, p.z >> 4, id);
+                    if (n)
+                    {
+                        float y = 64;
+                        int bid = 0;
+                        if (g.mc >= MC_1_18)
+                            mapApproxHeight(&y, &bid, &g, &sn, p.x >> 2, p.z >> 2, 1, 1);
+                        for (Piece *pc = pieces; pc < pieces+n; pc++)
+                        {
+                            pc->pos.y   += (int)y;
+                            pc->bb.minY += (int)y;
+                            pc->bb.maxY += (int)y;
+                        }
+                        vp.pieces.assign(pieces, pieces+n);
+                    }
+                }
                 else if (sconf.structType == Outpost)
                 {
                     float y = 0;
@@ -375,6 +465,13 @@ void getStructs(std::vector<VarPos> *out, const StructureConfig sconf,
                         vp.pieces.assign(pieces, pieces+n);
                         vp.pieces[0].bb.minY = (int)y;
                     }
+                }
+                else if (sconf.structType == Ancient_City)
+                {
+                    int n = getAncientCityPieces(pieces, sizeof(pieces)/sizeof(pieces[0]),
+                        wi.mc, wi.seed, p.x >> 4, p.z >> 4);
+                    if (n)
+                        vp.pieces.assign(pieces, pieces+n);
                 }
                 else if (sconf.structType == End_City)
                 {
@@ -428,7 +525,7 @@ void getStructs(std::vector<VarPos> *out, const StructureConfig sconf,
                     {
                         vp.pieces.assign(sh.pieces, sh.pieces+sh.count);
                         StrongholdPortalFrame frames[12];
-                        int nf = getStrongholdPortalFrames(frames, &sh);
+                        int nf = getStrongholdPortalFramesG(frames, &sh, &g);
                         vp.portalFrames.assign(frames, frames+nf);
                     }
                 }
@@ -442,6 +539,47 @@ void getStructs(std::vector<VarPos> *out, const StructureConfig sconf,
                 }
 
                 getVariant(&vp.v, sconf.structType, wi.mc, wi.seed, p.x, p.z, id);
+                if (sconf.structType == End_Gateway)
+                    vp.v.y = gw.y;
+                if ((sconf.structType == Village || sconf.structType == Ancient_City) &&
+                    !vp.pieces.empty() && vp.v.sx)
+                {   // locate the village at the center of its start piece (the icon, the
+                    // selection and the copied coordinates), the bounding box relative to it
+                    // (the same for ancient cities)
+                    const BB& b = vp.pieces[0].bb;
+                    Pos c = { (b.minX + b.maxX) >> 1, (b.minZ + b.maxZ) >> 1 };
+                    int fsx, fsz; // templates can be larger than their blocks
+                    const char *mask = getPieceFootprint(sconf.structType, &vp.pieces[0], &fsx, &fsz);
+                    if (mask)
+                    {
+                        const Piece& s = vp.pieces[0];
+                        int x0 = INT_MAX, x1 = INT_MIN, z0 = INT_MAX, z1 = INT_MIN;
+                        for (int lz = 0; lz < fsz; lz++)
+                        {
+                            for (int lx = 0; lx < fsx; lx++)
+                            {
+                                if (mask[lz*fsx + lx] != '#')
+                                    continue;
+                                int rx = lx, rz = lz;
+                                switch (s.rot & 3)
+                                {
+                                case 1: rx = -lz; rz =  lx; break;
+                                case 2: rx = -lx; rz = -lz; break;
+                                case 3: rx =  lz; rz = -lx; break;
+                                }
+                                x0 = std::min(x0, s.pos.x + rx); x1 = std::max(x1, s.pos.x + rx);
+                                z0 = std::min(z0, s.pos.z + rz); z1 = std::max(z1, s.pos.z + rz);
+                            }
+                        }
+                        if (x0 <= x1)
+                            c = Pos{ (x0 + x1) >> 1, (z0 + z1) >> 1 };
+                    }
+                    vp.v.x = b.minX - c.x;
+                    vp.v.z = b.minZ - c.z;
+                    vp.v.sx = b.maxX - b.minX + 1;
+                    vp.v.sz = b.maxZ - b.minZ + 1;
+                    vp.p = c;
+                }
                 out->push_back(vp);
             }
         }
@@ -668,15 +806,19 @@ void Quad::run()
     }
     else if (pixs < 0)
     {
-        int structureType = mapopt2stype(sopt);
-        if (structureType >= 0)
+        int types[3] = { mapopt2stype(sopt) };
+        int ntypes = sopt == D_FOSSIL ? getFossilTypes(dim, types) : 1;
+        if (types[0] >= 0)
         {
             int x0 = ti*blocks, x1 = (ti+1)*blocks;
             int z0 = tj*blocks, z1 = (tj+1)*blocks;
             std::vector<VarPos>* st = new std::vector<VarPos>();
             StructureConfig sconf;
-            if (getStructureConfig_override(structureType, wi.mc, &sconf))
-                getStructs(st, sconf, wi, dim, x0, z0, x1, z1, lopt.mode == LOPT_STRUCTS);
+            for (int i = 0; i < ntypes; i++)
+            {
+                if (getStructureConfig_override(types[i], wi.mc, &sconf))
+                    getStructs(st, sconf, wi, dim, x0, z0, x1, z1, lopt.mode == LOPT_STRUCTS);
+            }
             spos = st;
         }
     }
@@ -749,15 +891,15 @@ void Level::init4map(QWorld *w, int pix, int layerscale)
             pixs = 1;
     }
 
-    if (lopt.mode == LOPT_RIVER_4 && wi.mc >= MC_1_13 && wi.mc < MC_1_18)
+    if (lopt.mode == LOPT_RIVER_4 && wi.mc >= MC_1_4 && wi.mc < MC_1_18)
     {
-    //     setupGenerator(&g, wi.mc, wi.large);
-    //     g.ls.entry_4 = &g.ls.layers[L_RIVER_MIX_4];
+        setupGenerator(&g, wi.mc, wi.large);
+        g.ls.entry_4 = &g.ls.layers[L_RIVER_MIX_4];
     }
-    else if (lopt.mode == LOPT_OCEAN_256 && wi.mc >= MC_1_13 && wi.mc < MC_1_18)
+    else if (lopt.mode == LOPT_OCEAN_256 && wi.mc >= MC_1_4 && wi.mc < MC_1_18)
     {
-    //     setupGenerator(&g, wi.mc, wi.large);
-    //     g.ls.entry_256 = &g.ls.layers[L_OCEAN_TEMP_256];
+        setupGenerator(&g, wi.mc, wi.large);
+        g.ls.entry_256 = &g.ls.layers[L_OCEAN_TEMP_256];
     }
     else if (lopt.mode == LOPT_NOOCEAN_1 && wi.mc <= MC_B1_7)
     {
@@ -802,6 +944,8 @@ void Level::init4struct(QWorld *w, int sopt)
     this->world = w;
     this->wi = w->wi;
     this->dim = w->mconfig.getDim(sopt);
+    if (sopt == D_FOSSIL)   // overworld or nether fossils, following the map
+        this->dim = w->dim;
     this->blocks = w->mconfig.getTileSize(sopt);
     this->pixs = -1;
     this->scale = -1;
@@ -1019,6 +1163,11 @@ void QWorld::setDim(int dim, LayerOpt lopt)
 
     this->dim = dim;
     this->lopt = lopt;
+    if ((int) lvs.size() > D_FOSSIL && mconfig.enabled(D_FOSSIL))
+    {   // the fossil option follows the dimension
+        lvs[D_FOSSIL].setInactive(cachedstruct);
+        lvs[D_FOSSIL].dim = dim;
+    }
     applySeed(&g, dim, wi.seed);
     initSurfaceNoise(&sn, dim, g.seed);
 
@@ -1310,7 +1459,7 @@ struct SpawnStronghold : public Scheduled
             if (world->isdel)
                 return;
             VarPos vp(sh.pos, Stronghold);
-            populateStrongholdLayout(&vp, wi);
+            populateStrongholdLayout(&vp, wi, &g);
             PosElement *shp;
             (*shpp) = shp = new PosElement(vp);
             shpp = &shp->next;
@@ -1350,6 +1499,62 @@ static bool draw_grid_rec(QPainter& painter, QColor col, QRect &rec, qreal pix, 
     painter.setPen(QColor(255, 255, 255));
     painter.drawText(textrec, s);
     return true;
+}
+
+// outline of a ravine: the circles of its tunnel steps, with the radius of their bounding boxes
+static const QPainterPath& ravinePath(const VarPos& vp)
+{
+    static QHash<QString, QPainterPath> cache;
+    const Piece& p0 = vp.pieces[0];
+    QString key = QString::asprintf("%d,%d,%d,%d,%zu", vp.p.x, vp.p.z, p0.bb.minX, p0.bb.minZ, vp.pieces.size());
+    auto it = cache.constFind(key);
+    if (it != cache.constEnd())
+        return it.value();
+    if (cache.size() > 4096)
+        cache.clear();
+    QPainterPath path;
+    path.setFillRule(Qt::WindingFill);
+    for (const Piece& p : vp.pieces)
+    {
+        qreal cx = (p.bb.minX + p.bb.maxX + 1) / 2.0;
+        qreal cz = (p.bb.minZ + p.bb.maxZ + 1) / 2.0;
+        qreal r = (p.bb.maxX - p.bb.minX + 1) / 2.0;
+        path.addEllipse(QPointF(cx, cz), r, r);
+    }
+    return cache.insert(key, path.simplified()).value();
+}
+
+// outline of the blocks of a village or end city piece seen from above, relative to its origin
+static const QPainterPath *pieceFootprintPath(int stype, const Piece& p)
+{
+    static QHash<QString, QPainterPath> cache;
+    int sx, sz;
+    const char *mask = getPieceFootprint(stype, &p, &sx, &sz);
+    if (!mask)
+        return nullptr;
+    QString key = QString::asprintf("%d/%s/%d", stype, p.name, p.rot);
+    auto it = cache.constFind(key);
+    if (it != cache.constEnd())
+        return &it.value();
+    QPainterPath path;
+    path.setFillRule(Qt::WindingFill);
+    for (int z = 0; z < sz; z++)
+    {
+        for (int x = 0; x < sx; x++)
+        {
+            if (mask[z*sx + x] != '#')
+                continue;
+            int rx = x, rz = z; // the template is rotated clockwise around its origin
+            switch (p.rot & 3)
+            {
+            case 1: rx = -z; rz =  x; break;
+            case 2: rx = -x; rz = -z; break;
+            case 3: rx =  z; rz = -x; break;
+            }
+            path.addRect(rx, rz, 1, 1);
+        }
+    }
+    return &cache.insert(key, path.simplified()).value();
 }
 
 void QWorld::draw(QPainter& painter, int vw, int vh, qreal focusx, qreal focusz, qreal blocks2pix)
@@ -1507,7 +1712,7 @@ void QWorld::draw(QPainter& painter, int vw, int vh, qreal focusx, qreal focusz,
             endgates.resize(40);
             for (int i = 0; i < 20; i++)
             {
-                endgates[i] = { src[i].x, 75+3, src[i].z };   // inner
+                endgates[i] = { src[i].x, 75, src[i].z };     // inner
             
                 Pos3 dst = getLinkedGatewayPos(&g.en, &sn, g.seed, src[i]);
                 endgates[20 + i] = dst;                       // outer
@@ -1546,7 +1751,7 @@ void QWorld::draw(QPainter& painter, int vw, int vh, qreal focusx, qreal focusz,
                     selvp = VarPos({endgates[i].x, endgates[i].z}, End_Gateway);
                     // mapview.cpp does p.x + v.x, so v.x/z is fixed to 0
                     selvp.v.x = 0;//(int16_t)(endgates[i].x);
-                    selvp.v.y = 75+3; // baseY+3 Imagine if u teleported straight into an end portal
+                    selvp.v.y = (int16_t)(endgates[i].y);
                     selvp.v.z = 0;//(int16_t)(endgates[i].x);
                     selvp.v.size = (uint8_t)(i + 1);
                 }
@@ -1559,7 +1764,7 @@ void QWorld::draw(QPainter& painter, int vw, int vh, qreal focusx, qreal focusz,
                     selvp = VarPos({endgates[i+20].x, endgates[i+20].z}, End_Gateway);
                     // mapview.cpp does p.x + v.x, so v.x/z is fixed to 0
                     selvp.v.x = 0;//(int16_t)(endgates[i+20].x);
-                    selvp.v.y = (int16_t)(endgates[i+20].y)+3;
+                    selvp.v.y = (int16_t)(endgates[i+20].y);
                     selvp.v.z = 0;//(int16_t)(endgates[i+20].x);
                     selvp.v.size = (uint8_t)(i + 1);
                 }
@@ -1651,11 +1856,19 @@ void QWorld::draw(QPainter& painter, int vw, int vh, qreal focusx, qreal focusz,
                         y += vp.v.z * blocks2pix;
                         qreal dx = vp.v.sx * blocks2pix;
                         qreal dy = vp.v.sz * blocks2pix;
-                        painter.setPen(QPen(QColor(192, 0, 0, 160), 1));
-                        painter.drawRect(QRect(x, y, dx, dy));
-                        // center icon on bb
-                        x += dx / 2;
-                        y += dy / 2;
+                        if (vp.pieces.empty() || !pieceFootprintPath(vp.type, vp.pieces[0]))
+                        {
+                            painter.setPen(QPen(QColor(192, 0, 0, 160), 1));
+                            painter.drawRect(QRect(x, y, dx, dy));
+                            // center icon on bb
+                            x += dx / 2;
+                            y += dy / 2;
+                        }
+                        else
+                        {   // the start piece is drawn by its blocks, the icon stays at the position
+                            x -= vp.v.x * blocks2pix;
+                            y -= vp.v.z * blocks2pix;
+                        }
                     }
                     else if (vp.type == Geode)
                     {
@@ -1666,8 +1879,27 @@ void QWorld::draw(QPainter& painter, int vw, int vh, qreal focusx, qreal focusz,
                         painter.drawEllipse(QPointF(x, y), rad, rad);
                     }
                     painter.setPen(QPen(QColor(192, 0, 0, 128), 0));
-                    for (Piece& p : vp.pieces)
+                    if (vp.type == Ravine && !vp.pieces.empty())
+                    {   // the carved area: the union of the horizontal circles of its steps
+                        painter.save();
+                        painter.translate(vw/2.0 - focusx * blocks2pix, vh/2.0 - focusz * blocks2pix);
+                        painter.scale(blocks2pix, blocks2pix);
+                        painter.drawPath(ravinePath(vp));
+                        painter.restore();
+                    }
+                    else for (Piece& p : vp.pieces)
                     {
+                        const QPainterPath *fp = pieceFootprintPath(vp.type, p);
+                        if (fp)
+                        {   // the blocks of the template seen from above
+                            painter.save();
+                            painter.translate(vw/2.0 + (p.pos.x - focusx) * blocks2pix,
+                                              vh/2.0 + (p.pos.z - focusz) * blocks2pix);
+                            painter.scale(blocks2pix, blocks2pix);
+                            painter.drawPath(*fp);
+                            painter.restore();
+                            continue;
+                        }
                         qreal px = vw/2.0 + (p.bb.minX - focusx) * blocks2pix;
                         qreal py = vh/2.0 + (p.bb.minZ - focusz) * blocks2pix;
                         qreal dx = (p.bb.maxX - p.bb.minX + 1) * blocks2pix;

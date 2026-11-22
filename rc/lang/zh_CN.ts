@@ -3276,7 +3276,7 @@ Applies only to feature-structures of region-size = 32 and chunk-gap = 8, in par
     <message>
         <location filename="../../src/layerdialog.ui" line="101"/>
         <source>Ocean layer</source>
-        <translation>(1.13-1.17) 海洋温度层 1:256</translation>
+        <translation>(1.4-1.17) 海洋温度层 1:256</translation>
     </message>
     <message>
         <location filename="../../src/layerdialog.ui" line="118"/>
@@ -3306,7 +3306,7 @@ Applies only to feature-structures of region-size = 32 and chunk-gap = 8, in par
     <message>
         <location filename="../../src/layerdialog.ui" line="163"/>
         <source>River layer</source>
-        <translation>(1.13-1.17) 河流层 1:4</translation>
+        <translation>(1.4-1.17) 河流层 1:4</translation>
     </message>
     <message>
         <location filename="../../src/layerdialog.ui" line="190"/>
@@ -3653,8 +3653,8 @@ Applies only to feature-structures of region-size = 32 and chunk-gap = 8, in par
     </message>
     <message>
         <location filename="../../src/mainwindow.ui" line="602"/>
-        <source>(1.13 - 1.17) O. Temp. 1:256</source>
-        <translation>(1.13-1.17) 海洋温度层 1:256</translation>
+        <source>(1.4 - 1.17) O. Temp. 1:256</source>
+        <translation>(1.4-1.17) 海洋温度层 1:256</translation>
     </message>
     <message>
         <location filename="../../src/mainwindow.ui" line="605"/>
@@ -3663,8 +3663,8 @@ Applies only to feature-structures of region-size = 32 and chunk-gap = 8, in par
     </message>
     <message>
         <location filename="../../src/mainwindow.ui" line="613"/>
-        <source>(1.13 - 1.17) River Mix 1:4</source>
-        <translation>(1.13-1.17) 河流层 1:4</translation>
+        <source>(1.4 - 1.17) River Mix 1:4</source>
+        <translation>(1.4-1.17) 河流层 1:4</translation>
     </message>
     <message>
         <location filename="../../src/mainwindow.ui" line="616"/>
@@ -3738,8 +3738,8 @@ Applies only to feature-structures of region-size = 32 and chunk-gap = 8, in par
     </message>
     <message>
         <location filename="../../src/mainwindow.ui" line="700"/>
-        <source>Structure potential (48-bit)</source>
-        <translation>结构潜在生成位置(仅由低48二进制位决定)</translation>
+        <source>Structure potential (32-bit)</source>
+        <translation>结构潜在生成位置(仅由低32二进制位决定)</translation>
     </message>
     <message>
         <location filename="../../src/mainwindow.ui" line="703"/>
